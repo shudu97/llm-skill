@@ -8,3 +8,15 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
+
+# Upload
+upload/*
+
+# Doc
+docs/*
+
+# Database
+data/
