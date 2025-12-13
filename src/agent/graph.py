@@ -5,12 +5,13 @@ Simple ReAct Agent using LangGraph and Ollama
 import operator
 from typing import Annotated, TypedDict
 
-from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
-from src.tool import execute_script
+from src.tool import execute_script, view_skill
+from src.skills import SkillManager
 
 
 # Define the agent state
@@ -27,7 +28,11 @@ class ReActAgent:
             model_name: Name of the Ollama model to use (default: llama3.2)
         """
         # Define tools
-        self.tools = [execute_script]
+        self.tools = [execute_script, view_skill]
+
+        # Initialize skill manager and load summaries
+        self.skill_manager = SkillManager()
+        self.skill_summaries = self.skill_manager.get_skill_summaries()
 
         # Initialize the LLM with tools
         self.llm = ChatOllama(model=model_name, temperature=0)
@@ -88,8 +93,22 @@ class ReActAgent:
         Returns:
             The agent's final response
         """
-        # Create initial state
-        initial_state = {"messages": [HumanMessage(content=user_input)]}
+        # Create initial state with system message containing skill summaries
+        messages = []
+
+        # Add system message with skill summaries if available
+        if self.skill_summaries and self.skill_summaries != "No skills available.":
+            system_content = f"""You are a helpful assistant with access to specialized skills.
+
+{self.skill_summaries}
+
+When a user asks for something that matches a skill, use the view_skill tool to load the detailed instructions for that skill, then follow those instructions to complete the task."""
+            messages.append(SystemMessage(content=system_content))
+
+        # Add user message
+        messages.append(HumanMessage(content=user_input))
+
+        initial_state = {"messages": messages}
 
         # Run the graph
         result = self.graph.invoke(initial_state)
@@ -106,7 +125,22 @@ class ReActAgent:
         Yields:
             Each step of the agent's execution
         """
-        initial_state = {"messages": [HumanMessage(content=user_input)]}
+        # Create initial state with system message containing skill summaries
+        messages = []
+
+        # Add system message with skill summaries if available
+        if self.skill_summaries and self.skill_summaries != "No skills available.":
+            system_content = f"""You are a helpful assistant with access to specialized skills.
+
+{self.skill_summaries}
+
+When a user asks for something that matches a skill, use the view_skill tool to load the detailed instructions for that skill, then follow those instructions to complete the task."""
+            messages.append(SystemMessage(content=system_content))
+
+        # Add user message
+        messages.append(HumanMessage(content=user_input))
+
+        initial_state = {"messages": messages}
 
         for step in self.graph.stream(initial_state):
             yield step
