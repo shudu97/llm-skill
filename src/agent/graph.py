@@ -1,48 +1,16 @@
 """
 Simple ReAct Agent using LangGraph and Ollama
 """
-from typing import TypedDict, Annotated
+
 import operator
+from typing import Annotated, TypedDict
+
+from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_ollama import ChatOllama
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
-from langchain_core.tools import tool
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
-
-# Define simple tools for the agent
-@tool
-def calculator(expression: str) -> str:
-    """Evaluate a mathematical expression. Use this for any math calculations.
-
-    Args:
-        expression: A mathematical expression to evaluate (e.g., "2 + 2" or "10 * 5")
-    """
-    try:
-        result = eval(expression)
-        return f"The result is: {result}"
-    except Exception as e:
-        return f"Error evaluating expression: {str(e)}"
-
-
-@tool
-def get_word_length(word: str) -> str:
-    """Get the length of a word.
-
-    Args:
-        word: The word to count characters in
-    """
-    return f"The word '{word}' has {len(word)} characters."
-
-
-@tool
-def reverse_string(text: str) -> str:
-    """Reverse a string.
-
-    Args:
-        text: The text to reverse
-    """
-    return f"Reversed: {text[::-1]}"
+from src.tool import execute_script
 
 
 # Define the agent state
@@ -59,7 +27,7 @@ class ReActAgent:
             model_name: Name of the Ollama model to use (default: llama3.2)
         """
         # Define tools
-        self.tools = [calculator, get_word_length, reverse_string]
+        self.tools = [execute_script]
 
         # Initialize the LLM with tools
         self.llm = ChatOllama(model=model_name, temperature=0)
@@ -142,34 +110,3 @@ class ReActAgent:
 
         for step in self.graph.stream(initial_state):
             yield step
-
-
-def main():
-    """Example usage of the ReAct agent."""
-    print("Initializing ReAct Agent with Ollama...\n")
-
-    # Create the agent
-    agent = ReActAgent(model_name="llama3.2")
-
-    # Example queries
-    queries = [
-        "What is 25 multiplied by 4?",
-        "How many characters are in the word 'LangGraph'?",
-        "Reverse the string 'Hello World' and then tell me how many characters it has.",
-    ]
-
-    for query in queries:
-        print(f"Query: {query}")
-        print("-" * 50)
-
-        # Stream the execution to see the agent's reasoning
-        for step in agent.stream(query):
-            print(step)
-            print()
-
-        print("=" * 50)
-        print()
-
-
-if __name__ == "__main__":
-    main()

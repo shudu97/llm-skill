@@ -1,7 +1,8 @@
 """
 Simple example of using the ReAct agent
 """
-from react_agent import ReActAgent
+
+from src.agent.graph import ReActAgent
 
 
 def main():
