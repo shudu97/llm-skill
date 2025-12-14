@@ -15,4 +15,5 @@ wheels/
 # Skills
 src/skills/*
 
+# Output
 output/*
