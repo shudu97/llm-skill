@@ -2,22 +2,15 @@
 Simple ReAct Agent using LangGraph and Ollama
 """
 
-import operator
-from typing import Annotated, TypedDict
-
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
+from src.agent.prompts import get_system_prompt
+from src.agent.state import AgentState
 from src.skills import SkillManager
 from src.tool import execute_script, view_skill
-from src.agent.prompts import get_system_prompt
-
-
-# Define the agent state
-class AgentState(TypedDict):
-    messages: Annotated[list[BaseMessage], operator.add]
 
 
 # Create the agent
