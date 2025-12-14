@@ -12,6 +12,7 @@ from langgraph.prebuilt import ToolNode
 
 from src.skills import SkillManager
 from src.tool import execute_script, view_skill
+from src.agent.prompts import get_system_prompt
 
 
 # Define the agent state
@@ -99,11 +100,7 @@ class ReActAgent:
 
         # Add system message with skill summaries if available
         if self.skill_summaries and self.skill_summaries != "No skills available.":
-            system_content = f"""You are a helpful assistant with access to specialized skills.
-
-{self.skill_summaries}
-
-When a user asks for something that matches a skill, use the view_skill tool to load the detailed instructions for that skill, then follow those instructions to complete the task."""
+            system_content = get_system_prompt(self.skill_summaries)
             messages.append(SystemMessage(content=system_content))
 
         # Add user message
@@ -131,11 +128,7 @@ When a user asks for something that matches a skill, use the view_skill tool to 
 
         # Add system message with skill summaries if available
         if self.skill_summaries and self.skill_summaries != "No skills available.":
-            system_content = f"""You are a helpful assistant with access to specialized skills.
-
-{self.skill_summaries}
-
-When a user asks for something that matches a skill, use the view_skill tool to load the detailed instructions for that skill, then follow those instructions to complete the task."""
+            system_content = get_system_prompt(self.skill_summaries)
             messages.append(SystemMessage(content=system_content))
 
         # Add user message
