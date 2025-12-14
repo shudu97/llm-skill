@@ -63,11 +63,11 @@ class SkillManager:
         Returns:
             Dictionary with 'name' and 'description' keys
         """
-        with open(skill_file, 'r', encoding='utf-8') as f:
+        with open(skill_file, "r", encoding="utf-8") as f:
             content = f.read()
 
         # Parse YAML frontmatter
-        frontmatter_match = re.match(r'^---\s*\n(.*?\n)---\s*\n', content, re.DOTALL)
+        frontmatter_match = re.match(r"^---\s*\n(.*?\n)---\s*\n", content, re.DOTALL)
 
         if not frontmatter_match:
             raise ValueError("No frontmatter found in SKILL.md")
@@ -75,12 +75,16 @@ class SkillManager:
         frontmatter = frontmatter_match.group(1)
 
         # Extract name and description
-        name_match = re.search(r'^name:\s*(.+)$', frontmatter, re.MULTILINE)
-        desc_match = re.search(r'^description:\s*(.+)$', frontmatter, re.MULTILINE)
+        name_match = re.search(r"^name:\s*(.+)$", frontmatter, re.MULTILINE)
+        desc_match = re.search(r"^description:\s*(.+)$", frontmatter, re.MULTILINE)
+
+        print(name_match)
 
         return {
-            'name': name_match.group(1).strip() if name_match else 'Unknown',
-            'description': desc_match.group(1).strip() if desc_match else 'No description'
+            "name": name_match.group(1).strip() if name_match else "Unknown",
+            "description": desc_match.group(1).strip()
+            if desc_match
+            else "No description",
         }
 
     def load_skill(self, skill_id: str) -> str:
@@ -97,7 +101,7 @@ class SkillManager:
             return f"Error: Skill '{skill_id}' not found. Available skills: {available}"
 
         try:
-            with open(self.skills[skill_id], 'r', encoding='utf-8') as f:
+            with open(self.skills[skill_id], "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             return f"Error loading skill '{skill_id}': {str(e)}"
