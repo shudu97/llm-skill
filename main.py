@@ -7,10 +7,10 @@ from src.agent.graph import ReActAgent
 
 def main():
     # Initialize the agent (make sure Ollama is running with llama3.2 model)
-    agent = ReActAgent(model_name="llama3.2")
+    agent = ReActAgent(model_name="qwen3:8b")
 
     # Simple example query
-    query = "What is 15 times 7?"
+    query = "Generate a report for CCAR internal market shock"
 
     print(f"Question: {query}\n")
 

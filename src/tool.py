@@ -4,6 +4,7 @@ Tools for the ReAct agent
 
 import subprocess
 from pathlib import Path
+
 from langchain_core.tools import tool
 
 from src.skills import SkillManager
@@ -34,13 +35,13 @@ def execute_script(file_path: str, args: str = "", interpreter: str = "") -> str
         if not interpreter:
             file_ext = Path(file_path).suffix.lower()
             interpreter_map = {
-                '.py': 'python',
-                '.sh': 'bash',
-                '.js': 'node',
-                '.rb': 'ruby',
-                '.pl': 'perl',
+                ".py": "python",
+                ".sh": "bash",
+                ".js": "node",
+                ".rb": "ruby",
+                ".pl": "perl",
             }
-            interpreter = interpreter_map.get(file_ext, 'python')
+            interpreter = interpreter_map.get(file_ext, "python")
 
         # Build the command
         cmd = [interpreter, file_path]
@@ -54,11 +55,12 @@ def execute_script(file_path: str, args: str = "", interpreter: str = "") -> str
             cmd,
             capture_output=True,
             text=True,
-            timeout=30  # 30 second timeout to prevent hanging
+            timeout=30,  # 30 second timeout to prevent hanging
         )
 
         # Combine stdout and stderr
         output = result.stdout
+        print(output)
         if result.stderr:
             output += f"\nErrors/Warnings:\n{result.stderr}"
 
