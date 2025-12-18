@@ -5,10 +5,11 @@ Simple example of using the ReAct agent
 import os
 
 from dotenv import load_dotenv
-from phoenix.otel import register
 from openinference.instrumentation.langchain import LangChainInstrumentor
+from phoenix.otel import register
 
 from src.agent.graph import ReActAgent
+from src.utils.logger import logger
 
 # Load environment variables
 load_dotenv()
@@ -25,9 +26,9 @@ trace_provider = register(
 # Explicitly instrument LangChain
 LangChainInstrumentor().instrument(tracer_provider=trace_provider)
 
-print(f"Phoenix configured at: {phoenix_endpoint}")
-print("LangChain instrumentation enabled")
-print("Traces will be sent to Phoenix - check http://0.0.0.0:6006/projects")
+logger.info(f"Phoenix configured at: {phoenix_endpoint}")
+logger.info("LangChain instrumentation enabled")
+logger.info("Traces will be sent to Phoenix - check http://0.0.0.0:6006/projects")
 
 
 def main():
@@ -37,13 +38,12 @@ def main():
     # Simple example query
     query = "Generate a report for CCAR internal market shock"
 
-    print(f"Question: {query}\n")
-
     # Get the response
     response = agent.run(query)
 
-    print(f"Answer: {response}")
+    return response
 
 
 if __name__ == "__main__":
-    main()
+    response = main()
+    logger.info(f"Response: {response}")

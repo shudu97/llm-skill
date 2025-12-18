@@ -60,7 +60,7 @@ def execute_script(file_path: str, args: str = "", interpreter: str = "") -> str
 
         # Combine stdout and stderr
         output = result.stdout
-        print(output)
+
         if result.stderr:
             output += f"\nErrors/Warnings:\n{result.stderr}"
 

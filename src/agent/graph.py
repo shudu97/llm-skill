@@ -48,7 +48,6 @@ class ReActAgent:
         """Call the LLM with the current state."""
         messages = state["messages"]
         response = self.llm_with_tools.invoke(messages)
-        print(response)
         return {"messages": [response]}
 
     def _create_graph(self) -> StateGraph:

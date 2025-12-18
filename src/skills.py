@@ -78,8 +78,6 @@ class SkillManager:
         name_match = re.search(r"^name:\s*(.+)$", frontmatter, re.MULTILINE)
         desc_match = re.search(r"^description:\s*(.+)$", frontmatter, re.MULTILINE)
 
-        print(name_match)
-
         return {
             "name": name_match.group(1).strip() if name_match else "Unknown",
             "description": desc_match.group(1).strip()
