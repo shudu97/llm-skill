@@ -2,10 +2,9 @@
 Simple ReAct Agent using LangGraph and Ollama
 """
 
+from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
-from langgraph.graph import END, StateGraph
-from langgraph.prebuilt import ToolNode
 
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
@@ -30,53 +29,22 @@ class ReActAgent:
 
         # Initialize the LLM with tools
         self.llm = ChatOllama(model=model_name, temperature=0)
-        self.llm_with_tools = self.llm.bind_tools(self.tools)
 
-        # Create the graph
-        self.graph = self._create_graph()
+        # Create the agent
+        self.agent = self._create_agent()
 
-    def _should_continue(self, state: AgentState) -> str:
-        """Determine if the agent should continue or end."""
-        last_message = state["messages"][-1]
+    def _create_agent(self):
+        if self.skill_summaries and self.skill_summaries != "No skills available.":
+            system_content = get_system_prompt(self.skill_summaries)
 
-        # If there are no tool calls, we're done
-        if not hasattr(last_message, "tool_calls") or not last_message.tool_calls:
-            return "end"
-        return "continue"
-
-    def _call_model(self, state: AgentState) -> dict:
-        """Call the LLM with the current state."""
-        messages = state["messages"]
-        response = self.llm_with_tools.invoke(messages)
-        return {"messages": [response]}
-
-    def _create_graph(self) -> StateGraph:
-        """Create the LangGraph workflow for the ReAct agent."""
-        # Create the graph
-        workflow = StateGraph(AgentState)
-
-        # Add nodes
-        workflow.add_node("agent", self._call_model)
-        workflow.add_node("tools", ToolNode(self.tools))
-
-        # Set entry point
-        workflow.set_entry_point("agent")
-
-        # Add conditional edges
-        workflow.add_conditional_edges(
-            "agent",
-            self._should_continue,
-            {
-                "continue": "tools",
-                "end": END,
-            },
+        agent = create_agent(
+            model=self.llm,
+            tools=self.tools,
+            system_prompt=SystemMessage(content=system_content),
+            state_schema=AgentState,
         )
 
-        # Add edge from tools back to agent
-        workflow.add_edge("tools", "agent")
-
-        # Compile the graph
-        return workflow.compile()
+        return agent
 
     def run(self, user_input: str) -> str:
         """Run the agent with a user input.
@@ -87,46 +55,10 @@ class ReActAgent:
         Returns:
             The agent's final response
         """
-        # Create initial state with system message containing skill summaries
-        messages = []
-
-        # Add system message with skill summaries if available
-        if self.skill_summaries and self.skill_summaries != "No skills available.":
-            system_content = get_system_prompt(self.skill_summaries)
-            messages.append(SystemMessage(content=system_content))
-
-        # Add user message
-        messages.append(HumanMessage(content=user_input))
-
-        initial_state = {"messages": messages}
+        initial_state = {"messages": [HumanMessage(content=user_input)]}
 
         # Run the graph
-        result = self.graph.invoke(initial_state)
+        result = self.agent.invoke(initial_state)
 
         # Return the last message content
         return result["messages"][-1].content
-
-    def stream(self, user_input: str):
-        """Stream the agent's execution step by step.
-
-        Args:
-            user_input: The user's question or request
-
-        Yields:
-            Each step of the agent's execution
-        """
-        # Create initial state with system message containing skill summaries
-        messages = []
-
-        # Add system message with skill summaries if available
-        if self.skill_summaries and self.skill_summaries != "No skills available.":
-            system_content = get_system_prompt(self.skill_summaries)
-            messages.append(SystemMessage(content=system_content))
-
-        # Add user message
-        messages.append(HumanMessage(content=user_input))
-
-        initial_state = {"messages": messages}
-
-        for step in self.graph.stream(initial_state):
-            yield step
