@@ -3,6 +3,7 @@ Simple ReAct Agent using LangGraph and Ollama
 """
 
 from langchain.agents import create_agent
+from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
@@ -34,14 +35,15 @@ class ReActAgent:
         self.agent = self._create_agent()
 
     def _create_agent(self):
-        if self.skill_summaries and self.skill_summaries != "No skills available.":
-            system_content = get_system_prompt(self.skill_summaries)
+        # Always generate system prompt (even if no skills available)
+        system_content = get_system_prompt(self.skill_summaries)
 
         agent = create_agent(
             model=self.llm,
             tools=self.tools,
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
+            middleware=[FilesystemFileSearchMiddleware(root_path="upload")],
         )
 
         return agent
