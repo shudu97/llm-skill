@@ -17,3 +17,6 @@ src/skills/*
 
 # Output
 output/*
+
+# Upload
+upload/*
