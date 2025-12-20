@@ -11,10 +11,9 @@ from langchain.agents.middleware.shell_tool import (
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
+from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
-from src.skills import SkillManager
-from src.tool import view_skill
 
 
 # Create the agent
@@ -25,33 +24,32 @@ class ReActAgent:
         Args:
             model_name: Name of the Ollama model to use (default: llama3.2)
         """
-        # Define tools
-        self.tools = [view_skill]
-
-        # Initialize skill manager and load summaries
-        self.skill_manager = SkillManager()
-        self.skill_summaries = self.skill_manager.get_skill_summaries()
-
-        # Initialize the LLM with tools
+        # Initialize the LLM
         self.llm = ChatOllama(model=model_name, temperature=0)
+
+        # Initialize skill middleware
+        self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
 
         # Create the agent
         self.agent = self._create_agent()
 
     def _create_agent(self):
-        # Always generate system prompt (even if no skills available)
-        system_content = get_system_prompt(self.skill_summaries)
+        # Generate system prompt with skill summaries from middleware
+        system_content = get_system_prompt(self.skill_middleware.skill_summaries)
 
         agent = create_agent(
             model=self.llm,
-            tools=self.tools,
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
             middleware=[
+                self.skill_middleware,
                 FilesystemFileSearchMiddleware(root_path="upload"),
                 ShellToolMiddleware(
                     workspace_root=".",
-                    startup_commands="source .venv/bin/activate",
+                    startup_commands=[
+                        "export PATH=/opt/homebrew/bin:$PATH",
+                        "source .venv/bin/activate",
+                    ],
                     execution_policy=HostExecutionPolicy(),
                 ),
             ],

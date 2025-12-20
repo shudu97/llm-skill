@@ -1,11 +1,17 @@
 """
-Skills management for the ReAct agent
-Handles skill discovery, loading, and progressive disclosure
+Skill management middleware for the agent.
+
+This middleware provides skill discovery and loading functionality,
+exposing the view_skill tool and skill summaries for system prompt injection.
 """
 
 import re
 from pathlib import Path
 from typing import Dict, List
+
+from langchain_core.tools import tool
+
+from langchain.agents.middleware.types import AgentMiddleware
 
 
 class SkillManager:
@@ -111,3 +117,65 @@ class SkillManager:
             List of skill IDs
         """
         return sorted(self.skills.keys())
+
+
+class SkillMiddleware(AgentMiddleware):
+    """Provides skill management tools and summaries.
+
+    This middleware adds the view_skill tool and exposes skill summaries
+    that can be injected into the agent's system prompt.
+
+    Example:
+        ```python
+        from langchain.agents import create_agent
+        from src.agent.middleware.skill_middleware import SkillMiddleware
+
+        skill_middleware = SkillMiddleware(skills_dir="src/skills")
+
+        agent = create_agent(
+            model=model,
+            tools=[],
+            system_prompt=f"You are an agent. Skills: {skill_middleware.skill_summaries}",
+            middleware=[skill_middleware],
+        )
+        ```
+    """
+
+    def __init__(self, skills_dir: str = "src/skills") -> None:
+        """Initialize the skill middleware.
+
+        Args:
+            skills_dir: Directory containing skill folders (each with SKILL.md)
+        """
+        super().__init__()
+        self.skill_manager = SkillManager(skills_dir)
+
+        # Create view_skill tool as a closure that captures self
+        @tool
+        def view_skill(skill_id: str) -> str:
+            """Load and view the full content of a specific skill.
+
+            When you need detailed instructions for a skill, use this tool to load the complete
+            skill definition. The skill summaries are already available to you, but this tool
+            provides the full instructions including which scripts to execute, parameters to use,
+            and step-by-step procedures.
+
+            Args:
+                skill_id: The ID of the skill to load (e.g., "ccar_ims"). Use the skill ID shown
+                         in the available skills list.
+
+            Returns:
+                The full content of the skill's SKILL.md file with detailed instructions
+            """
+            return self.skill_manager.load_skill(skill_id)
+
+        self.tools = [view_skill]
+
+    @property
+    def skill_summaries(self) -> str:
+        """Get formatted skill summaries for system prompt injection.
+
+        Returns:
+            Formatted string with all skill summaries (name, ID, description)
+        """
+        return self.skill_manager.get_skill_summaries()
