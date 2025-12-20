@@ -4,13 +4,17 @@ Simple ReAct Agent using LangGraph and Ollama
 
 from langchain.agents import create_agent
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
+from langchain.agents.middleware.shell_tool import (
+    HostExecutionPolicy,
+    ShellToolMiddleware,
+)
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
 from src.skills import SkillManager
-from src.tool import execute_script, view_skill
+from src.tool import view_skill
 
 
 # Create the agent
@@ -22,7 +26,7 @@ class ReActAgent:
             model_name: Name of the Ollama model to use (default: llama3.2)
         """
         # Define tools
-        self.tools = [execute_script, view_skill]
+        self.tools = [view_skill]
 
         # Initialize skill manager and load summaries
         self.skill_manager = SkillManager()
@@ -43,7 +47,14 @@ class ReActAgent:
             tools=self.tools,
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
-            middleware=[FilesystemFileSearchMiddleware(root_path="upload")],
+            middleware=[
+                FilesystemFileSearchMiddleware(root_path="upload"),
+                ShellToolMiddleware(
+                    workspace_root=".",
+                    startup_commands="source .venv/bin/activate",
+                    execution_policy=HostExecutionPolicy(),
+                ),
+            ],
         )
 
         return agent
