@@ -29,6 +29,15 @@ class ReActAgent:
 
         # Initialize skill middleware
         self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
+        self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="upload")
+        self.shell_middleware = ShellToolMiddleware(
+            workspace_root=".",
+            startup_commands=[
+                "export PATH=/opt/homebrew/bin:$PATH",
+                "source .venv/bin/activate",
+            ],
+            execution_policy=HostExecutionPolicy(),
+        )
 
         # Create the agent
         self.agent = self._create_agent()
@@ -43,15 +52,8 @@ class ReActAgent:
             state_schema=AgentState,
             middleware=[
                 self.skill_middleware,
-                FilesystemFileSearchMiddleware(root_path="upload"),
-                ShellToolMiddleware(
-                    workspace_root=".",
-                    startup_commands=[
-                        "export PATH=/opt/homebrew/bin:$PATH",
-                        "source .venv/bin/activate",
-                    ],
-                    execution_policy=HostExecutionPolicy(),
-                ),
+                self.file_search_middleware,
+                self.shell_middleware,
             ],
         )
 
