@@ -35,8 +35,8 @@ def main():
     # Initialize the agent (make sure Ollama is running with llama3.2 model)
     agent = ReActAgent(model_name="qwen3:8b")
 
-    # Simple example query
-    query = "Generate a report for CCAR internal market shock"
+    # Get query from user input
+    query = input("Enter your query: ")
 
     # Get the response
     response = agent.run(query)
