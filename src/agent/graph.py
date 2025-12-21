@@ -5,15 +5,12 @@ Simple ReAct Agent using LangGraph and Ollama
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
-from langchain.agents.middleware.shell_tool import (
-    HostExecutionPolicy,
-    ShellToolMiddleware,
-)
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
+from src.agent.middleware.bash import execute_script
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
@@ -33,14 +30,6 @@ class ReActAgent:
         # Initialize skill middleware
         self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
         self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="upload")
-        self.shell_middleware = ShellToolMiddleware(
-            workspace_root=".",
-            startup_commands=[
-                "export PATH=/opt/homebrew/bin:$PATH",
-                "source .venv/bin/activate",
-            ],
-            execution_policy=HostExecutionPolicy(),
-        )
         self.hilp_middleware = HumanInTheLoopMiddleware(
             interrupt_on={"view_skill": True}
         )
@@ -54,13 +43,13 @@ class ReActAgent:
 
         agent = create_agent(
             model=self.llm,
+            tools=[execute_script],
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
             middleware=[
                 self.hilp_middleware,
                 self.skill_middleware,
                 self.file_search_middleware,
-                self.shell_middleware,
             ],
             checkpointer=InMemorySaver(),
         )

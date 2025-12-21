@@ -10,8 +10,8 @@ Use these when users ask about files or documents (e.g. .md, .txt, .py files), y
 - **glob_search** - Find files by pattern (e.g., "*.md", "*.py", "**/*.txt"). Use this FIRST to find files)
 - **grep_search** - Search file contents using regex. Use this to search inside files.
 
-## Shell Tool
-- **shell** - Execute shell commands in a persistent session. Use this to run scripts, file operations, or any command-line operations. Chain commands with && or ; and use absolute paths when possible.
+## Bash Tool
+- **execute_script** - Run script files when needed (Python, bash, JavaScript, etc.)
 
 # Available Skills
 
