@@ -3,6 +3,7 @@ Simple ReAct Agent using LangGraph and Ollama
 """
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
 from langchain.agents.middleware.shell_tool import (
     HostExecutionPolicy,
@@ -10,6 +11,8 @@ from langchain.agents.middleware.shell_tool import (
 )
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
 
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
@@ -38,6 +41,9 @@ class ReActAgent:
             ],
             execution_policy=HostExecutionPolicy(),
         )
+        self.hilp_middleware = HumanInTheLoopMiddleware(
+            interrupt_on={"view_skill": True}
+        )
 
         # Create the agent
         self.agent = self._create_agent()
@@ -51,10 +57,12 @@ class ReActAgent:
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
             middleware=[
+                self.hilp_middleware,
                 self.skill_middleware,
                 self.file_search_middleware,
                 self.shell_middleware,
             ],
+            checkpointer=InMemorySaver(),
         )
 
         return agent
@@ -70,8 +78,24 @@ class ReActAgent:
         """
         initial_state = {"messages": [HumanMessage(content=user_input)]}
 
+        config = {
+            "configurable": {
+                "thread_id": "my_thread_id",
+            }
+        }
+
         # Run the graph
-        result = self.agent.invoke(initial_state)
+        result = self.agent.invoke(initial_state, config=config)
+
+        if result.get("__interrupt__"):
+            view_decision = input("View Decision: ")
+            # shell_decision = input("Shell Decision: ")
+
+            if view_decision == "approve":
+                result = self.agent.invoke(
+                    Command(resume={"decisions": [{"type": "approve"}]}),
+                    config=config,
+                )
 
         # Return the last message content
         return result["messages"][-1].content
