@@ -31,9 +31,7 @@ class ReActAgent:
         self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
         self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="upload")
         self.bash_middleware = BashMiddleware()
-        self.hilp_middleware = HumanInTheLoopMiddleware(
-            interrupt_on={"view_skill": True}
-        )
+        self.hilp_middleware = HumanInTheLoopMiddleware(interrupt_on={"bash": True})
 
         # Create the agent
         self.agent = self._create_agent()
@@ -77,13 +75,35 @@ class ReActAgent:
         # Run the graph
         result = self.agent.invoke(initial_state, config=config)
 
-        if result.get("__interrupt__"):
-            view_decision = input("View Decision: ")
-            # shell_decision = input("Shell Decision: ")
+        # Extract the bash command from the interrupt data
+        interrupt_data = result.get("__interrupt__", [])
+        if interrupt_data and len(interrupt_data) > 0:
+            # __interrupt__ is a list, get the first interrupt item
+            first_interrupt = interrupt_data[0]
+            command = "Unknown Command"
 
-            if view_decision == "approve":
+            # Extract command from the Interrupt object structure
+            try:
+                action_requests = first_interrupt.value.get("action_requests", [])
+                if action_requests:
+                    command = action_requests[0]["args"]["command"]
+            except (KeyError, IndexError, AttributeError):
+                pass  # Keep default "Unknown Command"
+
+            decision = (
+                input(f"Approve bash command '{command}'? (approve/reject): ")
+                .strip()
+                .lower()
+            )
+
+            if decision == "approve":
                 result = self.agent.invoke(
                     Command(resume={"decisions": [{"type": "approve"}]}),
+                    config=config,
+                )
+            else:
+                result = self.agent.invoke(
+                    Command(resume={"decisions": [{"type": "reject"}]}),
                     config=config,
                 )
 
