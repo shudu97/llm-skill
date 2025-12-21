@@ -10,7 +10,7 @@ from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from src.agent.middleware.bash import bash
+from src.agent.middleware.bash import BashMiddleware
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
@@ -27,9 +27,10 @@ class ReActAgent:
         # Initialize the LLM
         self.llm = ChatOllama(model=model_name, temperature=0)
 
-        # Initialize skill middleware
+        # Initialize middleware
         self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
         self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="upload")
+        self.bash_middleware = BashMiddleware()
         self.hilp_middleware = HumanInTheLoopMiddleware(
             interrupt_on={"view_skill": True}
         )
@@ -43,13 +44,13 @@ class ReActAgent:
 
         agent = create_agent(
             model=self.llm,
-            tools=[bash],
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
             middleware=[
                 self.hilp_middleware,
                 self.skill_middleware,
                 self.file_search_middleware,
+                self.bash_middleware,
             ],
             checkpointer=InMemorySaver(),
         )
