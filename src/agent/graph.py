@@ -10,7 +10,7 @@ from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
-from src.agent.middleware.bash import execute_script
+from src.agent.middleware.bash import bash
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
@@ -43,7 +43,7 @@ class ReActAgent:
 
         agent = create_agent(
             model=self.llm,
-            tools=[execute_script],
+            tools=[bash],
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
             middleware=[

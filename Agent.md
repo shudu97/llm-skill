@@ -11,7 +11,7 @@ Use these when users ask about files or documents (e.g. .md, .txt, .py files), y
 - **grep_search** - Search file contents using regex. Use this to search inside files.
 
 ## Bash Tool
-- **execute_script** - Run script files when needed (Python, bash, JavaScript, etc.)
+- **bash** - Execute bash commands (e.g., ls, cat, python script.py, etc.)
 
 # Available Skills
 
