@@ -29,7 +29,7 @@ class ReActAgent:
 
         # Initialize middleware
         self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
-        self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="upload")
+        self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="")
         self.bash_middleware = BashMiddleware()
         self.hilp_middleware = HumanInTheLoopMiddleware(interrupt_on={"bash": True})
 
