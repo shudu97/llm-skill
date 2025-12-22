@@ -2,6 +2,7 @@
 Simple ReAct Agent using LangGraph and Ollama
 """
 
+import questionary
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
@@ -90,11 +91,22 @@ class ReActAgent:
             except (KeyError, IndexError, AttributeError):
                 pass  # Keep default "Unknown Command"
 
-            decision = (
-                input(f"Approve bash command '{command}'? (approve/reject): ")
-                .strip()
-                .lower()
-            )
+            # Use questionary for a nicer selection interface
+            print(f"\n\033[1mBash Command:\033[0m {command}\n")
+            decision = questionary.select(
+                "What would you like to do?",
+                choices=[
+                    questionary.Choice("✓ Approve", value="approve"),
+                    questionary.Choice("✗ Reject", value="reject"),
+                ],
+                style=questionary.Style(
+                    [
+                        ("selected", "fg:#673ab7 bold"),
+                        ("pointer", "fg:#673ab7 bold"),
+                        ("question", "bold"),
+                    ]
+                ),
+            ).ask()
 
             if decision == "approve":
                 result = self.agent.invoke(
