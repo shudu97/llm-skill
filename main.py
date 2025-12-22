@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 from openinference.instrumentation.langchain import LangChainInstrumentor
 from phoenix.otel import register
+from prompt_toolkit import prompt
 
 from src.agent.graph import ReActAgent
 from src.utils.logger import logger
@@ -39,11 +40,11 @@ def main():
 
     # Continuous conversation loop
     while True:
-        # Get query from user input
-        query = input("\nEnter your query: ").strip()
+        # Get query from user input with placeholder
+        query = prompt("\n>>> ", placeholder="Send a message").strip()
 
         # Check for exit commands
-        if query.lower() in ['exit', 'quit', 'q']:
+        if query.lower() in ["exit", "quit", "q"]:
             logger.info("Ending conversation. Goodbye!")
             break
 
