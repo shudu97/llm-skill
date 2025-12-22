@@ -35,15 +35,30 @@ def main():
     # Initialize the agent (make sure Ollama is running with llama3.2 model)
     agent = ReActAgent(model_name="qwen3:8b")
 
-    # Get query from user input
-    query = input("Enter your query: ")
+    logger.info("Agent initialized. Type 'exit' or 'quit' to end the conversation.\n")
 
-    # Get the response
-    response = agent.run(query)
+    # Continuous conversation loop
+    while True:
+        # Get query from user input
+        query = input("\nEnter your query: ").strip()
 
-    return response
+        # Check for exit commands
+        if query.lower() in ['exit', 'quit', 'q']:
+            logger.info("Ending conversation. Goodbye!")
+            break
+
+        # Skip empty queries
+        if not query:
+            continue
+
+        # Get the response
+        try:
+            response = agent.run(query)
+            logger.info(f"Response: {response}")
+        except Exception as e:
+            logger.error(f"Error processing query: {e}")
+            logger.info("Please try again or type 'exit' to quit.")
 
 
 if __name__ == "__main__":
-    response = main()
-    logger.info(f"Response: {response}")
+    main()
