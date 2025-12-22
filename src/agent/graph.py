@@ -96,8 +96,8 @@ class ReActAgent:
             decision = questionary.select(
                 "What would you like to do?",
                 choices=[
-                    questionary.Choice("✓ Approve", value="approve"),
-                    questionary.Choice("✗ Reject", value="reject"),
+                    questionary.Choice("Run the command", value="approve"),
+                    questionary.Choice("Reject the command", value="reject"),
                 ],
                 style=questionary.Style(
                     [
