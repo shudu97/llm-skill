@@ -1,5 +1,5 @@
 """
-Simple example of using the ReAct agent
+CLI entry point for the ReAct agent
 """
 
 import os
@@ -7,9 +7,8 @@ import os
 from dotenv import load_dotenv
 from openinference.instrumentation.langchain import LangChainInstrumentor
 from phoenix.otel import register
-from prompt_toolkit import prompt
 
-from src.agent.graph import ReActAgent
+from src.cli.runner import run_cli
 from src.utils.logger import logger
 
 # Load environment variables
@@ -32,34 +31,6 @@ logger.info("LangChain instrumentation enabled")
 logger.info("Traces will be sent to Phoenix - check http://0.0.0.0:6006/projects")
 
 
-def main():
-    # Initialize the agent (make sure Ollama is running with llama3.2 model)
-    agent = ReActAgent(model_name="qwen3:8b")
-
-    logger.info("Agent initialized. Type 'exit' or 'quit' to end the conversation.\n")
-
-    # Continuous conversation loop
-    while True:
-        # Get query from user input with placeholder
-        query = prompt("\n>>> ", placeholder="Send a message").strip()
-
-        # Check for exit commands
-        if query.lower() in ["exit", "quit", "q"]:
-            logger.info("Ending conversation. Goodbye!")
-            break
-
-        # Skip empty queries
-        if not query:
-            continue
-
-        # Get the response
-        try:
-            response = agent.run(query)
-            logger.info(f"Response: {response}")
-        except Exception as e:
-            logger.error(f"Error processing query: {e}")
-            logger.info("Please try again or type 'exit' to quit.")
-
-
 if __name__ == "__main__":
-    main()
+    # Run the CLI interface
+    run_cli(model_name="qwen3:8b")

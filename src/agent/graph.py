@@ -2,7 +2,6 @@
 Simple ReAct Agent using LangGraph and Ollama
 """
 
-import questionary
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
@@ -11,6 +10,7 @@ from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
 
+from src.agent.callbacks import AgentCallback
 from src.agent.middleware.bash import BashMiddleware
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
@@ -19,12 +19,16 @@ from src.agent.state import AgentState
 
 # Create the agent
 class ReActAgent:
-    def __init__(self, model_name: str = "llama3.2"):
+    def __init__(self, callback: AgentCallback, model_name: str = "llama3.2"):
         """Initialize the ReAct agent.
 
         Args:
+            callback: Callback interface for user interactions
             model_name: Name of the Ollama model to use (default: llama3.2)
         """
+        # Store callback for user interactions
+        self.callback = callback
+
         # Initialize the LLM
         self.llm = ChatOllama(model=model_name, temperature=0)
 
@@ -91,24 +95,10 @@ class ReActAgent:
             except (KeyError, IndexError, AttributeError):
                 pass  # Keep default "Unknown Command"
 
-            # Use questionary for a nicer selection interface
-            print(f"\n\033[1mBash Command:\033[0m {command}\n")
-            decision = questionary.select(
-                "What would you like to do?",
-                choices=[
-                    questionary.Choice("Run the command", value="approve"),
-                    questionary.Choice("Reject the command", value="reject"),
-                ],
-                style=questionary.Style(
-                    [
-                        ("selected", "fg:#673ab7 bold"),
-                        ("pointer", "fg:#673ab7 bold"),
-                        ("question", "bold"),
-                    ]
-                ),
-            ).ask()
+            # Request approval through callback (interface-agnostic)
+            approved = self.callback.request_approval(command)
 
-            if decision == "approve":
+            if approved:
                 result = self.agent.invoke(
                     Command(resume={"decisions": [{"type": "approve"}]}),
                     config=config,
