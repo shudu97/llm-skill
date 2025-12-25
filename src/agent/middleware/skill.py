@@ -9,15 +9,14 @@ import re
 from pathlib import Path
 from typing import Dict, List
 
-from langchain_core.tools import tool
-
 from langchain.agents.middleware.types import AgentMiddleware
+from langchain_core.tools import tool
 
 
 class SkillManager:
     """Manages skill loading and discovery"""
 
-    def __init__(self, skills_dir: str = "src/skills"):
+    def __init__(self, skills_dir: str = "src/skills/skills"):
         """Initialize the skill manager.
 
         Args:
@@ -130,7 +129,7 @@ class SkillMiddleware(AgentMiddleware):
         from langchain.agents import create_agent
         from src.agent.middleware.skill_middleware import SkillMiddleware
 
-        skill_middleware = SkillMiddleware(skills_dir="src/skills")
+        skill_middleware = SkillMiddleware(skills_dir="src/skills/skills")
 
         agent = create_agent(
             model=model,
@@ -141,7 +140,7 @@ class SkillMiddleware(AgentMiddleware):
         ```
     """
 
-    def __init__(self, skills_dir: str = "src/skills") -> None:
+    def __init__(self, skills_dir: str = "src/skills/skills") -> None:
         """Initialize the skill middleware.
 
         Args:

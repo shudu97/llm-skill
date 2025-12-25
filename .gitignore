@@ -13,7 +13,7 @@ wheels/
 .env
 
 # Skills
-src/skills/*
+src/skills/skills/*
 
 # Output
 output/*

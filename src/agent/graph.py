@@ -33,7 +33,7 @@ class ReActAgent:
         self.llm = ChatOllama(model=model_name, temperature=0)
 
         # Initialize middleware
-        self.skill_middleware = SkillMiddleware(skills_dir="src/skills")
+        self.skill_middleware = SkillMiddleware(skills_dir="src/skills/skills")
         self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="")
         self.bash_middleware = BashMiddleware()
         self.hilp_middleware = HumanInTheLoopMiddleware(interrupt_on={"bash": True})
