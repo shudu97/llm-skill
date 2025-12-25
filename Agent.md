@@ -15,6 +15,6 @@ Use these when users ask about files or documents (e.g. .md, .txt, .py files), y
 
 # Available Skills
 
-Skills are specialized workflows with step-by-step instructions for specific tasks. When a user's request matches a skill, use view_skill to load its detailed instructions, then follow them.
+Skills are specialized workflows with step-by-step instructions for specific tasks. When a user's request matches a skill, use view_skill to load its detailed instructions, then follow them. Available skills are: 
 
 {skill_summaries}

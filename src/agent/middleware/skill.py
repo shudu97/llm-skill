@@ -45,7 +45,7 @@ class SkillManager:
         if not self.skills:
             return "No skills available."
 
-        summaries = ["# Available Skills\n"]
+        summaries = []
 
         for skill_name, skill_file in sorted(self.skills.items()):
             try:
