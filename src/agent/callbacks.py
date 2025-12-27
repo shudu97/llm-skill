@@ -36,3 +36,21 @@ class AgentCallback(ABC):
             error: Error message to display
         """
         pass
+
+    def on_tool_call(self, tool_name: str, tool_input: dict) -> None:
+        """Optional callback when a tool is about to be called.
+
+        Args:
+            tool_name: Name of the tool being called
+            tool_input: Input arguments for the tool
+        """
+        pass
+
+    def on_tool_result(self, tool_name: str, result: str) -> None:
+        """Optional callback when a tool call completes.
+
+        Args:
+            tool_name: Name of the tool that was called
+            result: Result returned by the tool
+        """
+        pass

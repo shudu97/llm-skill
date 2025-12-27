@@ -41,7 +41,7 @@ def run_cli(model_name: str = "qwen3:8b") -> None:
         # Get the response
         try:
             response = agent.run(query)
-            logger.info(f"Response: {response}")
+            print(f"\n{response}\n")
         except Exception as e:
             logger.error(f"Error processing query: {e}")
             logger.info("Please try again or type 'exit' to quit.")

@@ -5,7 +5,7 @@ Simple ReAct Agent using LangGraph and Ollama
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
@@ -60,6 +60,26 @@ class ReActAgent:
 
         return agent
 
+    def _process_messages_for_tool_calls(self, messages: list) -> None:
+        """Process messages to extract and display tool calls and results.
+
+        Args:
+            messages: List of messages from the agent
+        """
+        for msg in messages:
+            # Check for AI messages with tool calls
+            if isinstance(msg, AIMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
+                for tool_call in msg.tool_calls:
+                    tool_name = tool_call.get("name", "unknown")
+                    tool_input = tool_call.get("args", {})
+                    self.callback.on_tool_call(tool_name, tool_input)
+
+            # Check for tool messages with results
+            elif isinstance(msg, ToolMessage):
+                tool_name = msg.name if hasattr(msg, "name") else "unknown"
+                result = msg.content
+                self.callback.on_tool_result(tool_name, result)
+
     def run(self, user_input: str) -> str:
         """Run the agent with a user input.
 
@@ -77,11 +97,17 @@ class ReActAgent:
             }
         }
 
-        # Run the graph
-        result = self.agent.invoke(initial_state, config=config)
+        # Run the graph with streaming to capture tool calls
+        final_result = None
+        for event in self.agent.stream(initial_state, config=config, stream_mode="values"):
+            messages = event.get("messages", [])
+            # Process only new messages (skip initial user message)
+            if len(messages) > 1:
+                self._process_messages_for_tool_calls([messages[-1]])
+            final_result = event
 
         # Extract the bash command from the interrupt data
-        interrupt_data = result.get("__interrupt__", [])
+        interrupt_data = final_result.get("__interrupt__", [])
         if interrupt_data and len(interrupt_data) > 0:
             # __interrupt__ is a list, get the first interrupt item
             first_interrupt = interrupt_data[0]
@@ -99,15 +125,24 @@ class ReActAgent:
             approved = self.callback.request_approval(command)
 
             if approved:
-                result = self.agent.invoke(
+                # Stream the resumed execution
+                for event in self.agent.stream(
                     Command(resume={"decisions": [{"type": "approve"}]}),
                     config=config,
-                )
+                    stream_mode="values",
+                ):
+                    messages = event.get("messages", [])
+                    if messages:
+                        self._process_messages_for_tool_calls([messages[-1]])
+                    final_result = event
             else:
-                result = self.agent.invoke(
+                # Stream the rejection
+                for event in self.agent.stream(
                     Command(resume={"decisions": [{"type": "reject"}]}),
                     config=config,
-                )
+                    stream_mode="values",
+                ):
+                    final_result = event
 
         # Return the last message content
-        return result["messages"][-1].content
+        return final_result["messages"][-1].content
