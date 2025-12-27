@@ -64,16 +64,13 @@ class BashMiddleware(AgentMiddleware):
                     timeout=self.timeout,
                 )
 
-                # Combine stdout and stderr
-                output = result.stdout
-
-                if result.stderr:
-                    output += f"\nErrors/Warnings:\n{result.stderr}"
-
+                # For failed commands: return exit code and error messages
                 if result.returncode != 0:
-                    return f"Command exited with code {result.returncode}\n{output}"
+                    error_output = result.stderr if result.stderr else result.stdout
+                    return f"Command failed with exit code {result.returncode}\nError: {error_output}"
 
-                return output if output else "Command executed successfully (no output)"
+                # For successful commands: only return stdout (actual output), ignore stderr (logs/warnings)
+                return result.stdout if result.stdout else "Command executed successfully (no output)"
 
             except subprocess.TimeoutExpired:
                 return f"Error: Command execution timed out ({self.timeout} second limit)"
