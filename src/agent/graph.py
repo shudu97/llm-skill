@@ -68,7 +68,11 @@ class ReActAgent:
         """
         for msg in messages:
             # Check for AI messages with tool calls
-            if isinstance(msg, AIMessage) and hasattr(msg, "tool_calls") and msg.tool_calls:
+            if (
+                isinstance(msg, AIMessage)
+                and hasattr(msg, "tool_calls")
+                and msg.tool_calls
+            ):
                 for tool_call in msg.tool_calls:
                     tool_name = tool_call.get("name", "unknown")
                     tool_input = tool_call.get("args", {})
@@ -99,7 +103,9 @@ class ReActAgent:
 
         # Run the graph with streaming to capture tool calls
         final_result = None
-        for event in self.agent.stream(initial_state, config=config, stream_mode="values"):
+        for event in self.agent.stream(
+            initial_state, config=config, stream_mode="values"
+        ):
             messages = event.get("messages", [])
             # Process only new messages (skip initial user message)
             if len(messages) > 1:
