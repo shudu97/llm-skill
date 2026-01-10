@@ -97,7 +97,8 @@ class SkillManager:
             skill_id: The skill ID (folder name)
 
         Returns:
-            Full content of the SKILL.md file
+            Content of the SKILL.md file with YAML frontmatter removed
+            (metadata is already available in skill summaries)
         """
         if skill_id not in self.skills:
             available = ", ".join(sorted(self.skills.keys()))
@@ -105,7 +106,16 @@ class SkillManager:
 
         try:
             with open(self.skills[skill_id], "r", encoding="utf-8") as f:
-                return f.read()
+                content = f.read()
+
+            # Strip YAML frontmatter to avoid duplication with system prompt
+            frontmatter_match = re.match(r"^---\s*\n(.*?\n)---\s*\n", content, re.DOTALL)
+            if frontmatter_match:
+                # Return content after frontmatter
+                return content[frontmatter_match.end() :]
+
+            # If no frontmatter found, return full content
+            return content
         except Exception as e:
             return f"Error loading skill '{skill_id}': {str(e)}"
 
