@@ -15,6 +15,7 @@ from src.agent.middleware.bash import BashMiddleware
 from src.agent.middleware.skill import SkillMiddleware
 from src.agent.prompts import get_system_prompt
 from src.agent.state import AgentState
+from src.agent.subagent import DataAnalysisSubagent
 
 
 # Create the agent
@@ -38,6 +39,12 @@ class ReActAgent:
         self.bash_middleware = BashMiddleware()
         self.hilp_middleware = HumanInTheLoopMiddleware(interrupt_on={"bash": True})
 
+        # Initialize subagents
+        self.data_analysis_subagent = DataAnalysisSubagent(
+            bash_middleware=self.bash_middleware,
+            model_name=model_name,
+        )
+
         # Create the agent
         self.agent = self._create_agent()
 
@@ -49,6 +56,9 @@ class ReActAgent:
             model=self.llm,
             system_prompt=SystemMessage(content=system_content),
             state_schema=AgentState,
+            tools=[
+                self.data_analysis_subagent.get_tool(),
+            ],
             middleware=[
                 self.hilp_middleware,
                 self.skill_middleware,
