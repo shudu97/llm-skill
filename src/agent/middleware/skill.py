@@ -90,34 +90,39 @@ class SkillManager:
             else "No description",
         }
 
-    def load_skill(self, skill_id: str) -> str:
-        """Load the full content of a specific skill.
+    def load_skill(self, skill_id: str, file: str = "SKILL.md") -> str:
+        """Load content from a skill folder.
 
         Args:
             skill_id: The skill ID (folder name)
+            file: File to read within the skill folder (default: SKILL.md)
 
         Returns:
-            Content of the SKILL.md file with YAML frontmatter removed
-            (metadata is already available in skill summaries)
+            Content of the requested file. For SKILL.md, YAML frontmatter is removed.
         """
         if skill_id not in self.skills:
             available = ", ".join(sorted(self.skills.keys()))
             return f"Error: Skill '{skill_id}' not found. Available skills: {available}"
 
         try:
-            with open(self.skills[skill_id], "r", encoding="utf-8") as f:
+            skill_folder = self.skills[skill_id].parent
+            file_path = skill_folder / file
+
+            if not file_path.exists():
+                return f"Error: File '{file}' not found in skill '{skill_id}'"
+
+            with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Strip YAML frontmatter to avoid duplication with system prompt
-            frontmatter_match = re.match(r"^---\s*\n(.*?\n)---\s*\n", content, re.DOTALL)
-            if frontmatter_match:
-                # Return content after frontmatter
-                return content[frontmatter_match.end() :]
+            # Strip YAML frontmatter only for SKILL.md
+            if file == "SKILL.md":
+                frontmatter_match = re.match(r"^---\s*\n(.*?\n)---\s*\n", content, re.DOTALL)
+                if frontmatter_match:
+                    content = content[frontmatter_match.end() :]
 
-            # If no frontmatter found, return full content
             return content
         except Exception as e:
-            return f"Error loading skill '{skill_id}': {str(e)}"
+            return f"Error loading '{file}' from skill '{skill_id}': {str(e)}"
 
     def list_skills(self) -> List[str]:
         """Get a list of all available skill IDs.
@@ -161,22 +166,17 @@ class SkillMiddleware(AgentMiddleware):
 
         # Create view_skill tool as a closure that captures self
         @tool
-        def view_skill(skill_id: str) -> str:
-            """Load and view the full content of a specific skill.
-
-            When you need detailed instructions for a skill, use this tool to load the complete
-            skill definition. The skill summaries are already available to you, but this tool
-            provides the full instructions including which scripts to execute, parameters to use,
-            and step-by-step procedures.
+        def view_skill(skill_id: str, file: str = "SKILL.md") -> str:
+            """Load content from a skill folder.
 
             Args:
-                skill_id: The ID of the skill to load (e.g., "ccar_ims"). Use the skill ID shown
-                         in the available skills list.
+                skill_id: The skill ID (e.g., "ccar_ims")
+                file: File to read (default: SKILL.md). Use for reference files like "reference/example.md"
 
             Returns:
-                The full content of the skill's SKILL.md file with detailed instructions
+                The file content
             """
-            return self.skill_manager.load_skill(skill_id)
+            return self.skill_manager.load_skill(skill_id, file)
 
         self.tools = [view_skill]
 
