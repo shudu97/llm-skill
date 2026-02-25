@@ -221,7 +221,12 @@ class DataAnalysisSubagent:
 
         result = None
         for event in subagent.stream(
-            {"messages": [HumanMessage(content=task_prompt)]},
+            {
+                "messages": [HumanMessage(content=task_prompt)],
+                "file_path": file_path,
+                "schema": json.loads(df_info) if df_info else {},
+                "task": task,
+            },
             config=config,
             stream_mode="values",
         ):
@@ -229,6 +234,6 @@ class DataAnalysisSubagent:
 
         self._cleanup_temp_files()
 
-        if result and result.get("messages"):
+        if result and result.get("messages"):            
             return result["messages"][-1].content
         return "Subagent failed to produce a result"

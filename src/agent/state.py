@@ -17,7 +17,6 @@ class DataAnalysisState(TypedDict):
     file_path: str
     schema: dict                # passed in from main agent, not re-analyzed
     task: str
-    last_script_path: str | None
 
 
 # Keep backward-compatible alias
