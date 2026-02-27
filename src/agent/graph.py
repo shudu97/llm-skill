@@ -8,6 +8,7 @@ import sqlite3
 from langchain.agents import create_agent
 from langchain.agents.middleware import HumanInTheLoopMiddleware
 from langchain.agents.middleware.file_search import FilesystemFileSearchMiddleware
+from langchain.agents.middleware.summarization import SummarizationMiddleware
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -52,6 +53,11 @@ class ReActAgent:
         self.file_search_middleware = FilesystemFileSearchMiddleware(root_path="")
         self.bash_middleware = BashMiddleware()
         self.hilp_middleware = HumanInTheLoopMiddleware(interrupt_on={"bash": True})
+        self.summarization_middleware = SummarizationMiddleware(
+            model=self.llm,
+            trigger=("messages", 20),
+            keep=("messages", 10),
+        )
 
         # Resolve db path
         resolved_db_path = db_path or os.getenv("AGENT_DB_PATH", "data/agent.db")
@@ -81,6 +87,7 @@ class ReActAgent:
                 self.data_analysis_subagent.get_tool(),
             ],
             middleware=[
+                self.summarization_middleware,
                 self.hilp_middleware,
                 self.skill_middleware,
                 self.file_search_middleware,

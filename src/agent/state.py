@@ -2,11 +2,11 @@ import operator
 from typing import Annotated, TypedDict
 
 from langchain_core.messages import BaseMessage
+from langgraph.graph.message import add_messages
 
 
 class MainAgentState(TypedDict):
-    messages: Annotated[list[BaseMessage], operator.add]
-    session_summary: str
+    messages: Annotated[list[BaseMessage], add_messages]
     active_skill: str | None
     skill_parameters: dict
     loaded_files: dict          # {path -> schema}
