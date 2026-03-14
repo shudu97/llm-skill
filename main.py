@@ -2,7 +2,6 @@
 CLI entry point for the ReAct agent
 """
 
-import asyncio
 import atexit
 import os
 import subprocess
@@ -63,4 +62,4 @@ if __name__ == "__main__":
     store = ConversationStore(engine=engine, user_id=user_id)
 
     session_id, is_new = select_session(store)
-    asyncio.run(run_cli(session_id, is_new))
+    run_cli(session_id, is_new)

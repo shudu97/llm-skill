@@ -19,11 +19,7 @@ _NEW_CONVERSATION = "__new__"
 
 
 def select_session(store: ConversationStore) -> tuple[str, bool]:
-    """Show conversation selector and return (session_id, is_new).
-
-    Must be called from the main thread before the asyncio event loop starts.
-    Returns is_new=True when the user chose to start a fresh conversation.
-    """
+    """Show conversation selector and return (session_id, is_new)."""
     past = store.list()
 
     if not past:
@@ -55,7 +51,7 @@ def select_session(store: ConversationStore) -> tuple[str, bool]:
     return session_id, False
 
 
-async def run_cli(session_id: str, is_new: bool) -> None:
+def run_cli(session_id: str, is_new: bool) -> None:
     """Run the CLI interface for the ReAct agent."""
     db_path = os.getenv("AGENT_DB_PATH", "data/agent.db")
     db_url = f"sqlite:///{db_path}"
@@ -80,7 +76,11 @@ async def run_cli(session_id: str, is_new: bool) -> None:
     title_updated = not is_new
 
     while True:
-        query_text = (await asyncio.to_thread(input, "\n>>> ")).strip()
+        try:
+            query_text = input("\n>>> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            logger.info("Ending conversation. Goodbye!")
+            break
 
         if query_text.lower() in ["exit", "quit", "q"]:
             logger.info("Ending conversation. Goodbye!")
@@ -90,7 +90,7 @@ async def run_cli(session_id: str, is_new: bool) -> None:
             continue
 
         try:
-            response, new_session_id = await agent.run(query_text)
+            response, new_session_id = asyncio.run(agent.run(query_text))
             print(f"\n{response}\n")
 
             if new_session_id and new_session_id != session_id:
