@@ -12,7 +12,9 @@ import time
 from dotenv import load_dotenv
 from phoenix.otel import register
 
-from src.cli.runner import run_cli
+from src.cli.runner import run_cli, select_session
+from src.store.conversation_store import ConversationStore
+from src.store.database import create_db_engine
 from src.utils.logger import logger
 
 # Load environment variables
@@ -55,4 +57,10 @@ logger.info("Traces will be sent to Phoenix - check http://0.0.0.0:6006/projects
 
 
 if __name__ == "__main__":
-    asyncio.run(run_cli())
+    db_path = os.getenv("AGENT_DB_PATH", "data/agent.db")
+    user_id = os.getenv("AGENT_USER_ID", "cli_user")
+    engine = create_db_engine(f"sqlite:///{db_path}")
+    store = ConversationStore(engine=engine, user_id=user_id)
+
+    session_id, is_new = select_session(store)
+    asyncio.run(run_cli(session_id, is_new))
