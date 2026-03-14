@@ -3,11 +3,11 @@ CLI runner for the ReAct agent.
 Handles the command-line interface and user interaction loop.
 """
 
+import asyncio
 import os
 import uuid
 
 import questionary
-from prompt_toolkit import PromptSession
 
 from src.agent.graph import ReActAgent
 from src.cli.callbacks import CLICallback
@@ -78,10 +78,9 @@ async def run_cli(session_id: str, is_new: bool) -> None:
     logger.info("Type 'exit' or 'quit' to end the conversation.\n")
 
     title_updated = not is_new
-    prompt_session = PromptSession()
 
     while True:
-        query_text = prompt_session.prompt("\n>>> ", placeholder="Send a message").strip()
+        query_text = (await asyncio.to_thread(input, "\n>>> ")).strip()
 
         if query_text.lower() in ["exit", "quit", "q"]:
             logger.info("Ending conversation. Goodbye!")
