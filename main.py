@@ -24,8 +24,11 @@ _LITELLM_PORT = 4000
 
 def _start_litellm_proxy() -> None:
     litellm_bin = os.path.join(os.path.dirname(sys.executable), "litellm")
+    log = open("data/litellm.log", "w")
     proc = subprocess.Popen(
         [litellm_bin, "--config", "litellm_config.yaml", "--port", str(_LITELLM_PORT)],
+        stdout=log,
+        stderr=log,
     )
     atexit.register(proc.terminate)
     time.sleep(2)
