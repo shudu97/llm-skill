@@ -10,6 +10,7 @@ from claude_agent_sdk import (
     HookMatcher,
     ResultMessage,
     SystemMessage,
+    ToolUseBlock,
     query,
 )
 
@@ -83,7 +84,7 @@ class ReActAgent:
                     new_session_id = message.data.get("session_id")
             elif isinstance(message, AssistantMessage):
                 for block in message.content:
-                    if block.type == "tool_use":
+                    if isinstance(block, ToolUseBlock):
                         callback.on_tool_call(block.name, block.input)
             elif isinstance(message, ResultMessage):
                 final_result = message.result or ""
