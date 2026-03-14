@@ -3,11 +3,12 @@ CLI entry point for the ReAct agent
 """
 
 import asyncio
+import atexit
 import os
-import threading
+import subprocess
+import sys
 import time
 
-import uvicorn
 from dotenv import load_dotenv
 from phoenix.otel import register
 
@@ -22,15 +23,17 @@ _LITELLM_PORT = 4000
 
 
 def _start_litellm_proxy() -> None:
-    from litellm.proxy.proxy_server import app, ProxyConfig
-
-    proxy_config = ProxyConfig()
-    asyncio.run(proxy_config.load_config(router=None, config_file_path="litellm_config.yaml"))
-    uvicorn.run(app, host=_LITELLM_HOST, port=_LITELLM_PORT, log_level="error")
+    litellm_bin = os.path.join(os.path.dirname(sys.executable), "litellm")
+    proc = subprocess.Popen(
+        [litellm_bin, "--config", "litellm_config.yaml", "--port", str(_LITELLM_PORT)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    atexit.register(proc.terminate)
 
 
 # Start the proxy and point the Claude CLI at it
-threading.Thread(target=_start_litellm_proxy, daemon=True).start()
+_start_litellm_proxy()
 os.environ["ANTHROPIC_BASE_URL"] = f"http://{_LITELLM_HOST}:{_LITELLM_PORT}"
 time.sleep(2)  # give the proxy a moment to bind
 
