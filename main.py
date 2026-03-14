@@ -26,16 +26,17 @@ def _start_litellm_proxy() -> None:
     litellm_bin = os.path.join(os.path.dirname(sys.executable), "litellm")
     proc = subprocess.Popen(
         [litellm_bin, "--config", "litellm_config.yaml", "--port", str(_LITELLM_PORT)],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
     )
     atexit.register(proc.terminate)
+    time.sleep(2)
+    if proc.poll() is not None:
+        raise RuntimeError(f"LiteLLM proxy exited immediately with code {proc.returncode}")
+    logger.info(f"LiteLLM proxy running on port {_LITELLM_PORT}")
 
 
 # Start the proxy and point the Claude CLI at it
 _start_litellm_proxy()
 os.environ["ANTHROPIC_BASE_URL"] = f"http://{_LITELLM_HOST}:{_LITELLM_PORT}"
-time.sleep(2)  # give the proxy a moment to bind
 
 # Get Phoenix endpoint from environment
 phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "http://0.0.0.0:6006")
