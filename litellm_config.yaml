@@ -1,0 +1,6 @@
+model_list:
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: openai/your-enterprise-model-name   # replace with your model name
+      api_base: os.environ/ENTERPRISE_GATEWAY_URL
+      api_key: os.environ/ENTERPRISE_GATEWAY_KEY

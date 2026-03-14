@@ -3,12 +3,11 @@ CLI runner for the ReAct agent.
 Handles the command-line interface and user interaction loop.
 """
 
-import asyncio
 import os
 import uuid
 
 import questionary
-from prompt_toolkit import prompt
+from prompt_toolkit import PromptSession
 
 from src.agent.graph import ReActAgent
 from src.cli.callbacks import CLICallback
@@ -19,7 +18,7 @@ from src.utils.logger import logger
 _NEW_CONVERSATION = "__new__"
 
 
-def _select_session(store: ConversationStore) -> tuple[str, bool]:
+async def _select_session(store: ConversationStore) -> tuple[str, bool]:
     """Show conversation selector and return (session_id, is_new).
 
     Returns is_new=True when the user chose to start a fresh conversation.
@@ -42,10 +41,10 @@ def _select_session(store: ConversationStore) -> tuple[str, bool]:
         ],
     ]
 
-    session_id = questionary.select(
+    session_id = await questionary.select(
         "Select a conversation:",
         choices=choices,
-    ).ask()
+    ).ask_async()
 
     if session_id is None:
         # User hit Ctrl-C at the selector
@@ -66,7 +65,7 @@ async def run_cli() -> None:
     engine = create_db_engine(db_url)
     store = ConversationStore(engine=engine, user_id=user_id)
 
-    session_id, is_new = _select_session(store)
+    session_id, is_new = await _select_session(store)
 
     if is_new:
         store.create(session_id, title="New conversation")
@@ -82,9 +81,10 @@ async def run_cli() -> None:
     logger.info("Type 'exit' or 'quit' to end the conversation.\n")
 
     title_updated = not is_new  # resuming — title already set
+    prompt_session = PromptSession()
 
     while True:
-        query_text = prompt("\n>>> ", placeholder="Send a message").strip()
+        query_text = (await prompt_session.prompt_async("\n>>> ", placeholder="Send a message")).strip()
 
         if query_text.lower() in ["exit", "quit", "q"]:
             logger.info("Ending conversation. Goodbye!")
