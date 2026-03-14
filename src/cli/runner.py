@@ -3,6 +3,7 @@ CLI runner for the ReAct agent.
 Handles the command-line interface and user interaction loop.
 """
 
+import asyncio
 import os
 import uuid
 
@@ -41,10 +42,9 @@ async def _select_session(store: ConversationStore) -> tuple[str, bool]:
         ],
     ]
 
-    session_id = await questionary.select(
-        "Select a conversation:",
-        choices=choices,
-    ).ask_async()
+    session_id = await asyncio.to_thread(
+        questionary.select("Select a conversation:", choices=choices).ask
+    )
 
     if session_id is None:
         # User hit Ctrl-C at the selector
@@ -84,7 +84,9 @@ async def run_cli() -> None:
     prompt_session = PromptSession()
 
     while True:
-        query_text = (await prompt_session.prompt_async("\n>>> ", placeholder="Send a message")).strip()
+        query_text = (await asyncio.to_thread(
+            prompt_session.prompt, "\n>>> ", placeholder="Send a message"
+        )).strip()
 
         if query_text.lower() in ["exit", "quit", "q"]:
             logger.info("Ending conversation. Goodbye!")
