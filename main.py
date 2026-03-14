@@ -25,7 +25,7 @@ def _start_litellm_proxy() -> None:
     from litellm.proxy.proxy_server import app, ProxyConfig
 
     proxy_config = ProxyConfig()
-    asyncio.run(proxy_config.load_config(config="litellm_config.yaml"))
+    asyncio.run(proxy_config.load_config(router=None, config_file_path="litellm_config.yaml"))
     uvicorn.run(app, host=_LITELLM_HOST, port=_LITELLM_PORT, log_level="error")
 
 
