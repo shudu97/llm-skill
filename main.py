@@ -49,10 +49,28 @@ def _start_litellm_proxy() -> None:
 def _start_logging_proxy() -> None:
     litellm_url = f"http://{_LITELLM_HOST}:{_LITELLM_PORT}"
 
+    def _fix_additional_properties(obj):
+        """Recursively convert additionalProperties: {} to false."""
+        if isinstance(obj, dict):
+            if "additionalProperties" in obj and obj["additionalProperties"] == {}:
+                obj["additionalProperties"] = False
+            for v in obj.values():
+                _fix_additional_properties(v)
+        elif isinstance(obj, list):
+            for item in obj:
+                _fix_additional_properties(item)
+
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             length = int(self.headers.get("Content-Length", 0))
             body = self.rfile.read(length)
+
+            try:
+                data = json.loads(body)
+                _fix_additional_properties(data)
+                body = json.dumps(data).encode()
+            except Exception:
+                pass
 
             with open("data/proxy.log", "a") as f:
                 f.write(f"\n=== REQUEST {self.path} ===\n")
