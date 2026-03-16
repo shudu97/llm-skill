@@ -3,6 +3,7 @@ CLI entry point for the ReAct agent
 """
 
 import atexit
+import http.client
 import json
 import os
 import subprocess
@@ -10,8 +11,6 @@ import sys
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.error import HTTPError
-from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 from phoenix.otel import register
@@ -33,7 +32,14 @@ def _start_litellm_proxy() -> None:
     litellm_bin = os.path.join(os.path.dirname(sys.executable), "litellm")
     log = open("data/litellm.log", "w")
     proc = subprocess.Popen(
-        [litellm_bin, "--config", "litellm_config.yaml", "--port", str(_LITELLM_PORT)],
+        [
+            litellm_bin,
+            "--config",
+            "litellm_config.yaml",
+            "--port",
+            str(_LITELLM_PORT),
+            "--detailed_debug",
+        ],
         stdout=log,
         stderr=log,
     )
@@ -47,7 +53,6 @@ def _start_litellm_proxy() -> None:
 
 
 def _start_logging_proxy() -> None:
-    litellm_url = f"http://{_LITELLM_HOST}:{_LITELLM_PORT}"
 
     def _fix_additional_properties(obj):
         """Recursively convert additionalProperties: {} to false."""
@@ -79,26 +84,40 @@ def _start_logging_proxy() -> None:
                 except Exception:
                     f.write(body.decode(errors="replace") + "\n")
 
-            req = Request(f"{litellm_url}{self.path}", data=body, method="POST")
-            for k, v in self.headers.items():
-                if k.lower() not in ("host", "content-length"):
-                    req.add_header(k, v)
+            # Use http.client for proper streaming support
+            conn = http.client.HTTPConnection(_LITELLM_HOST, int(_LITELLM_PORT))
+            headers = {
+                k: v
+                for k, v in self.headers.items()
+                if k.lower() not in ("host", "content-length")
+            }
+            headers["Content-Length"] = str(len(body))
+
             try:
-                resp = urlopen(req)
-                resp_body = resp.read()
+                conn.request("POST", self.path, body=body, headers=headers)
+                resp = conn.getresponse()
+
                 self.send_response(resp.status)
-                for k, v in resp.headers.items():
-                    self.send_header(k, v)
+                for k, v in resp.getheaders():
+                    if k.lower() != "transfer-encoding":
+                        self.send_header(k, v)
                 self.end_headers()
-                self.wfile.write(resp_body)
-            except HTTPError as e:
-                resp_body = e.read()
+
+                while True:
+                    chunk = resp.read(1024)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+
+            except Exception as e:
                 with open("data/proxy.log", "a") as f:
-                    f.write(f"=== RESPONSE {e.code} ===\n")
-                    f.write(resp_body.decode(errors="replace") + "\n")
-                self.send_response(e.code)
+                    f.write(f"=== ERROR ===\n{e}\n")
+
+                self.send_response(502)
                 self.end_headers()
-                self.wfile.write(resp_body)
+            finally:
+                conn.close()
 
         def log_message(self, format, *args):
             pass
