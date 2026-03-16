@@ -122,7 +122,7 @@ def _start_logging_proxy() -> None:
         def log_message(self, format, *args):
             pass
 
-    server = HTTPServer(("127.0.0.1", _PROXY_PORT), Handler)
+    server = HTTPServer(("127.0.0.1", int(_PROXY_PORT)), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     logger.info(f"Logging proxy on port {_PROXY_PORT} → LiteLLM:{_LITELLM_PORT}")
 
