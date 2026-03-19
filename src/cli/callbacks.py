@@ -3,8 +3,6 @@ CLI implementation of agent callbacks.
 Uses questionary for interactive prompts and terminal output.
 """
 
-import json
-
 import questionary
 
 from src.agent.callbacks import AgentCallback
@@ -68,7 +66,7 @@ class CLICallback(AgentCallback):
             tool_input: Input arguments for the tool
         """
         # Skip displaying bash tool calls (already shown in approval prompt)
-        if tool_name == "bash":
+        if tool_name.lower() == "bash":
             return
 
         # Format tool input in a readable way
