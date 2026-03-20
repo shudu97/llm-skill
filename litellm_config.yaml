@@ -4,3 +4,6 @@ model_list:
       model: openai/your-enterprise-model-name   # replace with your model name
       api_base: os.environ/ENTERPRISE_GATEWAY_URL
       api_key: os.environ/ENTERPRISE_GATEWAY_KEY
+
+litellm_settings:
+  callbacks: ["src.utils.litellm_hooks.ToolIdRemapHook"]
