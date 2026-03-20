@@ -27,24 +27,35 @@ class ToolIdRemapHook(CustomLogger):
         if not messages:
             return data
 
+        # id_map is overwritten per assistant message so that each tool_use
+        # occurrence gets a fresh UUID. The subsequent tool_result blocks (which
+        # always immediately follow their parent assistant message) pick up the
+        # most-recent mapping, keeping pairs consistent.
         id_map: dict[str, str] = {}
 
         for msg in messages:
             role = msg.get("role")
+            content = msg.get("content")
 
-            # Remap IDs in assistant messages that have tool_calls
+            if not isinstance(content, list):
+                continue
+
+            # Anthropic format: assistant messages contain tool_use blocks
             if role == "assistant":
-                for tc in msg.get("tool_calls") or []:
-                    old_id = tc.get("id")
-                    if old_id and old_id not in id_map:
-                        id_map[old_id] = f"call_{uuid.uuid4().hex[:24]}"
-                    if old_id:
-                        tc["id"] = id_map[old_id]
+                for block in content:
+                    if block.get("type") == "tool_use":
+                        old_id = block.get("id")
+                        if old_id:
+                            new_id = f"call_{uuid.uuid4().hex[:24]}"
+                            id_map[old_id] = new_id  # always overwrite
+                            block["id"] = new_id
 
-            # Remap matching tool_call_id in tool result messages
-            if role == "tool":
-                old_id = msg.get("tool_call_id")
-                if old_id and old_id in id_map:
-                    msg["tool_call_id"] = id_map[old_id]
+            # Anthropic format: tool results are inside user messages
+            elif role == "user":
+                for block in content:
+                    if block.get("type") == "tool_result":
+                        old_id = block.get("tool_use_id")
+                        if old_id and old_id in id_map:
+                            block["tool_use_id"] = id_map[old_id]
 
         return data
