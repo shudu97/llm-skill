@@ -15,10 +15,12 @@ together so the pairing stays consistent.
 
 import uuid
 
+from litellm.integrations.custom_logger import CustomLogger
 
-class ToolIdRemapHook:
+
+class ToolIdRemapHook(CustomLogger):
     def __init__(self, *args, **kwargs):
-        pass
+        super().__init__(*args, **kwargs)
 
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
