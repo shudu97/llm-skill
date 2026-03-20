@@ -60,9 +60,6 @@ def run_cli(session_id: str, is_new: bool) -> None:
     engine = create_db_engine(db_url)
     store = ConversationStore(engine=engine, user_id=user_id)
 
-    if is_new:
-        store.create(session_id, title="New conversation")
-
     callback = CLICallback()
     agent = ReActAgent(
         callback=callback,
@@ -74,6 +71,7 @@ def run_cli(session_id: str, is_new: bool) -> None:
     logger.info("Type 'exit' or 'quit' to end the conversation.\n")
 
     title_updated = not is_new
+    db_created = not is_new  # for existing sessions the record already exists
 
     while True:
         try:
@@ -95,6 +93,10 @@ def run_cli(session_id: str, is_new: bool) -> None:
 
             if new_session_id and new_session_id != session_id:
                 session_id = new_session_id
+
+            if not db_created:
+                store.create(session_id, title="New conversation")
+                db_created = True
 
             if not title_updated:
                 title = query_text[:60] + ("..." if len(query_text) > 60 else "")
