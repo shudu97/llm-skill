@@ -19,9 +19,6 @@ from litellm.integrations.custom_logger import CustomLogger
 
 
 class ToolIdRemapHook(CustomLogger):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
         if not messages:
@@ -59,3 +56,8 @@ class ToolIdRemapHook(CustomLogger):
                             block["tool_use_id"] = id_map[old_id]
 
         return data
+
+
+# Module-level instance so LiteLLM's get_instance_fn retrieves an instance,
+# not the class itself (which would be treated as a callable function).
+tool_id_remap_hook = ToolIdRemapHook()

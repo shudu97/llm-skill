@@ -6,5 +6,5 @@ model_list:
       api_key: os.environ/ENTERPRISE_GATEWAY_KEY
 
 litellm_settings:
-  callbacks: ["src.utils.litellm_hooks.ToolIdRemapHook"]
+  callbacks: ["src.utils.litellm_hooks.tool_id_remap_hook"]
   num_retries: 0
