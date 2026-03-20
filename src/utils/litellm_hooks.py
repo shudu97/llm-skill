@@ -17,6 +17,9 @@ import uuid
 
 
 class ToolIdRemapHook:
+    def __init__(self, *args, **kwargs):
+        pass
+
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
         if not messages:
