@@ -20,7 +20,7 @@ from litellm.integrations.custom_logger import CustomLogger
 
 class ToolIdRemapHook(CustomLogger):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__()
 
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
