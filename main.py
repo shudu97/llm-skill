@@ -107,15 +107,22 @@ def _start_logging_proxy() -> None:
                     chunk = resp.read(1024)
                     if not chunk:
                         break
-                    self.wfile.write(chunk)
-                    self.wfile.flush()
+                    try:
+                        self.wfile.write(chunk)
+                        self.wfile.flush()
+                    except BrokenPipeError:
+                        break  # client closed connection after reading full response
 
+            except BrokenPipeError:
+                pass  # client disconnected before headers were sent
             except Exception as e:
                 with open("data/proxy.log", "a") as f:
                     f.write(f"=== ERROR ===\n{e}\n")
-
-                self.send_response(502)
-                self.end_headers()
+                try:
+                    self.send_response(502)
+                    self.end_headers()
+                except BrokenPipeError:
+                    pass
             finally:
                 conn.close()
 
