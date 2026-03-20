@@ -10,6 +10,7 @@ dependencies = [
     "dotenv>=0.9.9",
     "litellm[proxy]>=1.48.0,<1.60.0",
     "openpyxl>=3.1.5",
+    "opentelemetry-exporter-otlp-proto-http>=1.39.1",
     "pandas>=2.3.3",
     "prompt-toolkit>=3.0.52",
     "questionary>=2.1.1",
