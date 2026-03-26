@@ -13,6 +13,7 @@ from claude_agent_sdk import (
     ToolUseBlock,
     query,
 )
+from claude_agent_sdk.types import PermissionResultAllow, PermissionResultDeny
 
 from src.agent.callbacks import AgentCallback
 
@@ -46,33 +47,32 @@ class ReActAgent:
         """
         callback = self.callback
 
-        async def bash_approval_hook(input_data, tool_use_id, context):
-            command = input_data.get("tool_input", {}).get("command", "")
-            approved, feedback = await asyncio.to_thread(callback.request_approval, command)
-            if not approved:
-                return {
-                    "hookSpecificOutput": {
-                        "hookEventName": "PreToolUse",
-                        "permissionDecision": "deny",
-                        "permissionDecisionReason": feedback or "User rejected",
+        async def can_use_tool(tool_name, input_data, context):
+            if tool_name == "AskUserQuestion":
+                answers = await asyncio.to_thread(callback.handle_ask_user_question, input_data)
+                return PermissionResultAllow(
+                    updated_input={
+                        "questions": input_data.get("questions", []),
+                        "answers": answers,
                     }
-                }
-            return {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                }
-            }
+                )
+            elif tool_name == "Bash":
+                command = input_data.get("command", "")
+                approved, feedback = await asyncio.to_thread(callback.request_approval, command)
+                if approved:
+                    return PermissionResultAllow(updated_input=input_data)
+                return PermissionResultDeny(message=feedback or "User rejected")
+            return PermissionResultAllow(updated_input=input_data)
+
+        async def dummy_hook(input_data, tool_use_id, context):
+            return {"continue_": True}
 
         options = ClaudeAgentOptions(
-            allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+            allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion"],
             setting_sources=["project"],
             resume=self.session_id,
-            hooks={
-                "PreToolUse": [
-                    HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
-                ]
-            },
+            can_use_tool=can_use_tool,
+            hooks={"PreToolUse": [HookMatcher(matcher=None, hooks=[dummy_hook])]},
         )
 
         new_session_id: str | None = None
