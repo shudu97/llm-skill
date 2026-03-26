@@ -10,14 +10,15 @@ class AgentCallback(ABC):
     """Abstract base class for agent callbacks."""
 
     @abstractmethod
-    def request_approval(self, command: str) -> bool:
+    def request_approval(self, command: str) -> tuple[bool, str | None]:
         """Request user approval for executing a command.
 
         Args:
             command: The command that needs approval
 
         Returns:
-            True if approved, False if rejected
+            (approved, feedback) — approved is True if permitted, False if rejected.
+            feedback is an optional message the user provides when rejecting.
         """
         pass
 

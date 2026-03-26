@@ -12,17 +12,26 @@ from src.utils.logger import logger
 class CLICallback(AgentCallback):
     """CLI implementation of agent callbacks."""
 
-    def request_approval(self, command: str) -> bool:
+    def request_approval(self, command: str) -> tuple[bool, str | None]:
         """Request user approval for executing a command via terminal UI.
 
         Args:
             command: The command that needs approval
 
         Returns:
-            True if approved, False if rejected
+            (approved, feedback) — approved is True if permitted, False if rejected.
+            feedback is an optional message the user provides when rejecting.
         """
         # Display the command with formatting
         print(f"\n\033[1mBash Command:\033[0m {command}\n")
+
+        style = questionary.Style(
+            [
+                ("selected", "fg:#673ab7 bold"),
+                ("pointer", "fg:#673ab7 bold"),
+                ("question", "bold"),
+            ]
+        )
 
         # Use questionary for a nicer selection interface
         decision = questionary.select(
@@ -30,17 +39,21 @@ class CLICallback(AgentCallback):
             choices=[
                 questionary.Choice("Yes", value="approve"),
                 questionary.Choice("No", value="reject"),
+                questionary.Choice("No, with feedback", value="feedback"),
             ],
-            style=questionary.Style(
-                [
-                    ("selected", "fg:#673ab7 bold"),
-                    ("pointer", "fg:#673ab7 bold"),
-                    ("question", "bold"),
-                ]
-            ),
+            style=style,
         ).ask()
 
-        return decision == "approve"
+        if decision == "approve":
+            return True, None
+        elif decision == "feedback":
+            feedback = questionary.text(
+                "Provide feedback for Claude:",
+                style=style,
+            ).ask()
+            return False, feedback or None
+        else:
+            return False, None
 
     def on_progress(self, message: str) -> None:
         """Display progress message to terminal.

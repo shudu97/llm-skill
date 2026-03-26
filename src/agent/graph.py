@@ -48,13 +48,13 @@ class ReActAgent:
 
         async def bash_approval_hook(input_data, tool_use_id, context):
             command = input_data.get("tool_input", {}).get("command", "")
-            approved = await asyncio.to_thread(callback.request_approval, command)
+            approved, feedback = await asyncio.to_thread(callback.request_approval, command)
             if not approved:
                 return {
                     "hookSpecificOutput": {
                         "hookEventName": "PreToolUse",
                         "permissionDecision": "deny",
-                        "permissionDecisionReason": "User rejected",
+                        "permissionDecisionReason": feedback or "User rejected",
                     }
                 }
             return {
