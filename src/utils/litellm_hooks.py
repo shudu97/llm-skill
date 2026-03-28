@@ -48,13 +48,17 @@ class ToolIdRemapHook(CustomLogger):
                 if isinstance(content, list):
                     for j, block in enumerate(content):
                         btype = block.get("type")
-                        if btype in ("tool_use", "tool_result"):
-                            logger.warning(
-                                "  msg[%d] role=%s block[%d] type=%s id=%s content_type=%s",
-                                i, role, j, btype,
-                                block.get("id") or block.get("tool_use_id"),
-                                type(block.get("content")).__name__,
-                            )
+                        logger.warning(
+                            "  msg[%d] role=%s block[%d] type=%s id=%s content_type=%s",
+                            i, role, j, btype,
+                            block.get("id") or block.get("tool_use_id", ""),
+                            type(block.get("content")).__name__,
+                        )
+                else:
+                    logger.warning(
+                        "  msg[%d] role=%s content_type=%s",
+                        i, role, type(content).__name__,
+                    )
         if not messages:
             return data
 
