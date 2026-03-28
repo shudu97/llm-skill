@@ -1,5 +1,5 @@
 """
-LiteLLM pre-call hook to remap tool call IDs to unique UUIDs.
+LiteLLM pre-call hook to remap tool call IDs and normalize tool result content.
 
 Command-A (and similar enterprise models) generate sequential tool call IDs
 (e.g. call_1, call_2) that restart from call_1 on every API request. When a
@@ -7,10 +7,21 @@ session is resumed, the conversation history already contains these IDs, so the
 model's new call_1 collides with the historical call_1, causing a 400 error:
   "tool call 'id' is not unique"
 
-Fix: before forwarding each request to the enterprise gateway, remap every
-tool_call ID in the history to a unique UUID. Both the assistant message
-tool_calls[].id and the corresponding tool message tool_call_id are updated
-together so the pairing stays consistent.
+Fix 1 (ID remapping): before forwarding each request to the enterprise gateway,
+remap every tool_call ID in the history to a unique UUID. Both the assistant
+message tool_calls[].id and the corresponding tool message tool_call_id are
+updated together so the pairing stays consistent.
+
+Fix 2 (tool_result content normalization): LiteLLM's Anthropic→OpenAI
+conversion has two bugs in translate_anthropic_messages_to_openai:
+  - tool_result with content=null is silently dropped (key exists but value is
+    None, so the "content not in block" guard is False and no branch matches)
+  - tool_result with content=[item1, item2, ...] creates one OpenAI tool
+    message PER item; gateways then convert these back into multiple
+    tool_result blocks, exceeding the number of tool_use blocks
+
+We fix both by normalising tool_result content to a plain string before
+LiteLLM runs the conversion.
 """
 
 import uuid
@@ -54,15 +65,41 @@ class ToolIdRemapHook(CustomLogger):
                         old_id = block.get("tool_use_id")
                         if old_id and old_id in id_map:
                             block["tool_use_id"] = id_map[old_id]
+                        # Normalise content to a plain string so LiteLLM's
+                        # Anthropic→OpenAI conversion always emits exactly one
+                        # tool message per tool_result block.
+                        block["content"] = self._normalise_tool_result_content(
+                            block.get("content")
+                        )
 
-        # Fix: Anthropic requires tool_result count == tool_use count in the
-        # preceding assistant message. LiteLLM's Anthropic→OpenAI conversion
-        # can produce extra tool messages that the enterprise gateway converts
-        # back into extra tool_result blocks, causing a 400 from Anthropic.
-        # Strip any tool_result blocks that exceed the preceding tool_use count.
+        # Remove orphaned tool_result blocks (those whose tool_use_id has no
+        # matching tool_use in the immediately preceding assistant message).
         self._trim_excess_tool_results(messages)
 
         return data
+
+    def _normalise_tool_result_content(self, content) -> str:
+        """Collapse tool_result content to a plain string.
+
+        LiteLLM's translate_anthropic_messages_to_openai has two bugs:
+        - content=None: the key exists so the "not in block" guard is False,
+          and isinstance(None, str/list) are both False → tool message dropped.
+        - content=[item, item, ...]: each item becomes a separate OpenAI tool
+          message, causing downstream gateways to produce extra tool_result
+          blocks.
+        Normalising to a string fixes both before the conversion runs.
+        """
+        if not content:
+            return ""
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+            return "\n".join(parts)
+        return ""
 
     def _trim_excess_tool_results(self, messages: list) -> None:
         """Remove tool_result blocks that have no matching tool_use in the
