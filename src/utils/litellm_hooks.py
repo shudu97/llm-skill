@@ -55,7 +55,54 @@ class ToolIdRemapHook(CustomLogger):
                         if old_id and old_id in id_map:
                             block["tool_use_id"] = id_map[old_id]
 
+        # Fix: Anthropic requires tool_result count == tool_use count in the
+        # preceding assistant message. LiteLLM's Anthropic→OpenAI conversion
+        # can produce extra tool messages that the enterprise gateway converts
+        # back into extra tool_result blocks, causing a 400 from Anthropic.
+        # Strip any tool_result blocks that exceed the preceding tool_use count.
+        self._trim_excess_tool_results(messages)
+
         return data
+
+    def _trim_excess_tool_results(self, messages: list) -> None:
+        """Remove tool_result blocks that have no matching tool_use in the
+        immediately preceding assistant message."""
+        for i, msg in enumerate(messages):
+            if msg.get("role") != "user":
+                continue
+            content = msg.get("content")
+            if not isinstance(content, list):
+                continue
+            tool_result_blocks = [b for b in content if b.get("type") == "tool_result"]
+            if not tool_result_blocks:
+                continue
+
+            # Find the immediately preceding assistant message
+            preceding_tool_use_ids: set[str] = set()
+            for j in range(i - 1, -1, -1):
+                prev = messages[j]
+                if prev.get("role") == "assistant":
+                    prev_content = prev.get("content")
+                    if isinstance(prev_content, list):
+                        preceding_tool_use_ids = {
+                            b["id"]
+                            for b in prev_content
+                            if b.get("type") == "tool_use" and b.get("id")
+                        }
+                    break
+
+            if not preceding_tool_use_ids:
+                continue
+
+            # Keep only tool_result blocks whose tool_use_id is in the
+            # preceding assistant message; drop orphaned ones.
+            valid_results = [
+                b for b in tool_result_blocks
+                if b.get("tool_use_id") in preceding_tool_use_ids
+            ]
+            if len(valid_results) < len(tool_result_blocks):
+                other_blocks = [b for b in content if b.get("type") != "tool_result"]
+                msg["content"] = other_blocks + valid_results
 
 
 # Module-level instance so LiteLLM's get_instance_fn retrieves an instance,
