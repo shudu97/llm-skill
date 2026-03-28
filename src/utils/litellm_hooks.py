@@ -35,6 +35,9 @@ logger = logging.getLogger(__name__)
 class ToolIdRemapHook(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
+        if messages:
+            messages = self._split_mixed_user_messages(messages)
+            data["messages"] = messages
         logger.warning(
             "ToolIdRemapHook called: call_type=%s model=%s num_messages=%s",
             call_type,
@@ -104,6 +107,46 @@ class ToolIdRemapHook(CustomLogger):
         self._trim_excess_tool_results(messages)
 
         return data
+
+    def _split_mixed_user_messages(self, messages: list) -> list:
+        """Split user messages that mix tool_result and text blocks into two.
+
+        LiteLLM's translate_anthropic_messages_to_openai appends the text
+        user-message BEFORE the tool messages in the output, producing:
+
+            assistant: {tool_calls}
+            user:      {text}      ← wrong: OpenAI requires tool messages here
+            tool:      {result}
+
+        By splitting the mixed user message into a tool_result-only message
+        followed by a text-only message, the conversion produces:
+
+            assistant: {tool_calls}
+            tool:      {result}    ← correct
+            user:      {text}
+        """
+        new_messages = []
+        for msg in messages:
+            if msg.get("role") != "user":
+                new_messages.append(msg)
+                continue
+            content = msg.get("content")
+            if not isinstance(content, list):
+                new_messages.append(msg)
+                continue
+
+            tool_result_blocks = [b for b in content if b.get("type") == "tool_result"]
+            other_blocks = [b for b in content if b.get("type") != "tool_result"]
+
+            if not tool_result_blocks or not other_blocks:
+                new_messages.append(msg)
+                continue
+
+            # tool_result-only message comes first so the conversion emits
+            # tool messages immediately after the assistant message.
+            new_messages.append({**msg, "content": tool_result_blocks})
+            new_messages.append({**msg, "content": other_blocks})
+        return new_messages
 
     def _normalise_tool_result_content(self, content) -> str:
         """Collapse tool_result content to a plain string.
