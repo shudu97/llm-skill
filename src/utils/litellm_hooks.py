@@ -24,14 +24,37 @@ We fix both by normalising tool_result content to a plain string before
 LiteLLM runs the conversion.
 """
 
+import logging
 import uuid
 
 from litellm.integrations.custom_logger import CustomLogger
+
+logger = logging.getLogger(__name__)
 
 
 class ToolIdRemapHook(CustomLogger):
     async def async_pre_call_hook(self, user_api_key_dict, cache, data, call_type):
         messages = data.get("messages")
+        logger.warning(
+            "ToolIdRemapHook called: call_type=%s model=%s num_messages=%s",
+            call_type,
+            data.get("model"),
+            len(messages) if messages else 0,
+        )
+        if messages:
+            for i, msg in enumerate(messages):
+                role = msg.get("role")
+                content = msg.get("content")
+                if isinstance(content, list):
+                    for j, block in enumerate(content):
+                        btype = block.get("type")
+                        if btype in ("tool_use", "tool_result"):
+                            logger.warning(
+                                "  msg[%d] role=%s block[%d] type=%s id=%s content_type=%s",
+                                i, role, j, btype,
+                                block.get("id") or block.get("tool_use_id"),
+                                type(block.get("content")).__name__,
+                            )
         if not messages:
             return data
 
