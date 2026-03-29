@@ -12,3 +12,4 @@ litellm_settings:
 
 general_settings:
   otel: true
+  request_timeout: 600
