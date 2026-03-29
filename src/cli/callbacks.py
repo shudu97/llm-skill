@@ -55,50 +55,6 @@ class CLICallback(AgentCallback):
         else:
             return False, None
 
-    def handle_ask_user_question(self, input_data: dict) -> dict:
-        """Present Claude's clarifying questions via terminal and collect answers.
-
-        Args:
-            input_data: The AskUserQuestion tool input containing a 'questions' list.
-
-        Returns:
-            Dict mapping each question string to the user's selected answer label(s).
-        """
-        answers = {}
-        style = questionary.Style(
-            [
-                ("selected", "fg:#673ab7 bold"),
-                ("pointer", "fg:#673ab7 bold"),
-                ("question", "bold"),
-            ]
-        )
-
-        for q in input_data.get("questions", []):
-            choices = [
-                questionary.Choice(
-                    title=f"{opt['label']} — {opt['description']}",
-                    value=opt["label"],
-                )
-                for opt in q.get("options", [])
-            ]
-
-            if q.get("multiSelect"):
-                selected = questionary.checkbox(
-                    f"{q['header']}: {q['question']}",
-                    choices=choices,
-                    style=style,
-                ).ask()
-                answers[q["question"]] = ", ".join(selected) if selected else ""
-            else:
-                selected = questionary.select(
-                    f"{q['header']}: {q['question']}",
-                    choices=choices,
-                    style=style,
-                ).ask()
-                answers[q["question"]] = selected or ""
-
-        return answers
-
     def on_progress(self, message: str) -> None:
         """Display progress message to terminal.
 
@@ -122,8 +78,8 @@ class CLICallback(AgentCallback):
             tool_name: Name of the tool being called
             tool_input: Input arguments for the tool
         """
-        # Skip tools that have their own dedicated UI
-        if tool_name.lower() in ("bash", "askuserquestion"):
+        # Skip displaying bash tool calls (already shown in approval prompt)
+        if tool_name.lower() == "bash":
             return
 
         # Format tool input in a readable way
