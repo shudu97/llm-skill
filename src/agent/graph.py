@@ -3,6 +3,7 @@ ReAct Agent backed by the Claude Agent SDK.
 """
 
 import asyncio
+import random
 
 from claude_agent_sdk import (
     AssistantMessage,
@@ -17,6 +18,7 @@ from claude_agent_sdk import (
 from rich.console import Console
 
 from src.agent.callbacks import AgentCallback
+from src.agent.constants import SPINNER_WORDS
 
 _console = Console()
 
@@ -53,7 +55,8 @@ class ReActAgent:
         new_session_id: str | None = None
         final_result: str = ""
 
-        with _console.status("Thinking...", spinner="dots") as status:
+        initial_word = random.choice(SPINNER_WORDS)
+        with _console.status(f"{initial_word}...", spinner="dots") as status:
             async def bash_approval_hook(input_data, tool_use_id, context):
                 command = input_data.get("tool_input", {}).get("command", "")
                 status.stop()
