@@ -50,39 +50,41 @@ class ReActAgent:
         """
         callback = self.callback
 
-        async def bash_approval_hook(input_data, tool_use_id, context):
-            command = input_data.get("tool_input", {}).get("command", "")
-            approved, feedback = await asyncio.to_thread(callback.request_approval, command)
-            if not approved:
-                return {
-                    "hookSpecificOutput": {
-                        "hookEventName": "PreToolUse",
-                        "permissionDecision": "deny",
-                        "permissionDecisionReason": feedback or "User rejected",
-                    }
-                }
-            return {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "allow",
-                }
-            }
-
-        options = ClaudeAgentOptions(
-            allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
-            setting_sources=["project"],
-            resume=self.session_id,
-            hooks={
-                "PreToolUse": [
-                    HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
-                ]
-            },
-        )
-
         new_session_id: str | None = None
         final_result: str = ""
 
         with _console.status("Thinking...", spinner="dots") as status:
+            async def bash_approval_hook(input_data, tool_use_id, context):
+                command = input_data.get("tool_input", {}).get("command", "")
+                status.stop()
+                approved, feedback = await asyncio.to_thread(callback.request_approval, command)
+                status.start()
+                if not approved:
+                    return {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": feedback or "User rejected",
+                        }
+                    }
+                return {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "allow",
+                    }
+                }
+
+            options = ClaudeAgentOptions(
+                allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+                setting_sources=["project"],
+                resume=self.session_id,
+                hooks={
+                    "PreToolUse": [
+                        HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
+                    ]
+                },
+            )
+
             async for message in query(prompt=user_input, options=options):
                 if isinstance(message, TaskProgressMessage):
                     status.update(message.description)
