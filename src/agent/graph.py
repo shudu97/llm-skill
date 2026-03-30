@@ -10,11 +10,15 @@ from claude_agent_sdk import (
     HookMatcher,
     ResultMessage,
     SystemMessage,
+    TaskProgressMessage,
     ToolUseBlock,
     query,
 )
+from rich.console import Console
 
 from src.agent.callbacks import AgentCallback
+
+_console = Console()
 
 
 class ReActAgent:
@@ -78,18 +82,23 @@ class ReActAgent:
         new_session_id: str | None = None
         final_result: str = ""
 
-        async for message in query(prompt=user_input, options=options):
-            if isinstance(message, SystemMessage):
-                if hasattr(message, "data") and message.data:
-                    new_session_id = message.data.get("session_id")
-            elif isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, ToolUseBlock):
-                        callback.on_tool_call(block.name, block.input)
-            elif isinstance(message, ResultMessage):
-                final_result = message.result or ""
-                if new_session_id is None:
-                    new_session_id = message.session_id
+        with _console.status("Thinking...", spinner="dots") as status:
+            async for message in query(prompt=user_input, options=options):
+                if isinstance(message, TaskProgressMessage):
+                    status.update(message.description)
+                elif isinstance(message, SystemMessage):
+                    if hasattr(message, "data") and message.data:
+                        new_session_id = message.data.get("session_id")
+                elif isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, ToolUseBlock):
+                            status.stop()
+                            callback.on_tool_call(block.name, block.input)
+                            status.start()
+                elif isinstance(message, ResultMessage):
+                    final_result = message.result or ""
+                    if new_session_id is None:
+                        new_session_id = message.session_id
 
         # Persist session_id for subsequent calls
         self.session_id = new_session_id
