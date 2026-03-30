@@ -9,6 +9,8 @@ import uuid
 
 import questionary
 
+from claude_agent_sdk import get_session_messages
+
 from src.agent.graph import ReActAgent
 from src.cli.callbacks import CLICallback
 from src.store.conversation_store import ConversationStore
@@ -51,6 +53,41 @@ def select_session(store: ConversationStore) -> tuple[str, bool]:
     return session_id, False
 
 
+def _print_conversation_history(session_id: str) -> None:
+    """Print previous conversation messages to the terminal."""
+    messages = get_session_messages(session_id)
+    if not messages:
+        return
+
+    print("\n\033[90m─── Conversation History ───\033[0m")
+    for msg in messages:
+        role = msg.type  # "user" or "assistant"
+        content = msg.message.get("content", "")
+
+        # Extract text from content (may be str or list of blocks)
+        if isinstance(content, str):
+            text = content
+        elif isinstance(content, list):
+            parts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    parts.append(block["text"])
+            text = "\n".join(parts)
+        else:
+            continue
+
+        text = text.strip()
+        if not text:
+            continue
+
+        if role == "user":
+            print(f"\n>>> {text}")
+        else:
+            print(f"\n{text}\n")
+
+    print("\033[90m─── End of History ───\033[0m")
+
+
 def run_cli(session_id: str, is_new: bool) -> None:
     """Run the CLI interface for the ReAct agent."""
     db_path = os.getenv("AGENT_DB_PATH", "data/agent.db")
@@ -69,6 +106,9 @@ def run_cli(session_id: str, is_new: bool) -> None:
 
     logger.info(f"Session: {session_id}")
     logger.info("Type 'exit' or 'quit' to end the conversation.\n")
+
+    if not is_new:
+        _print_conversation_history(session_id)
 
     title_updated = not is_new
     db_created = not is_new  # for existing sessions the record already exists
