@@ -62,6 +62,8 @@ class ReActAgent:
                 status.stop()
                 approved, feedback = await asyncio.to_thread(callback.request_approval, command)
                 status.start()
+                snippet = command[:60] + "..." if len(command) > 60 else command
+                status.update(f"Bash({snippet})")
                 if not approved:
                     return {
                         "hookSpecificOutput": {
