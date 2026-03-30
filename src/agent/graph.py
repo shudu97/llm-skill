@@ -96,7 +96,7 @@ class ReActAgent:
                         new_session_id = message.data.get("session_id")
                 elif isinstance(message, AssistantMessage):
                     for block in message.content:
-                        if isinstance(block, ToolUseBlock):
+                        if isinstance(block, ToolUseBlock) and block.name.lower() != "bash":
                             status.stop()
                             callback.on_tool_call(block.name, block.input)
                             status.start()
