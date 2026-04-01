@@ -100,7 +100,13 @@ class ReActAgent:
                 },
             )
 
-            async for message in query(prompt=user_input, options=options):
+            async def prompt_stream():
+                yield {
+                    "type": "user",
+                    "message": {"role": "user", "content": user_input},
+                }
+
+            async for message in query(prompt=prompt_stream(), options=options):
                 if isinstance(message, TaskProgressMessage):
                     status.update(message.description)
                 elif isinstance(message, SystemMessage):
