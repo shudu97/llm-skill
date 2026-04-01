@@ -55,6 +55,62 @@ class CLICallback(AgentCallback):
         else:
             return False, None
 
+    def handle_ask_user_question(self, input_data: dict) -> dict:
+        """Display Claude's questions and collect user answers via terminal UI.
+
+        Args:
+            input_data: AskUserQuestion tool input with 'questions' array.
+
+        Returns:
+            Dict with original 'questions' and 'answers' mapping.
+        """
+        style = questionary.Style(
+            [
+                ("selected", "fg:#673ab7 bold"),
+                ("pointer", "fg:#673ab7 bold"),
+                ("question", "bold"),
+                ("checkbox", "fg:#673ab7"),
+            ]
+        )
+
+        answers = {}
+        for q in input_data.get("questions", []):
+            question_text = q["question"]
+            header = q.get("header", "")
+            options = q["options"]
+            multi_select = q.get("multiSelect", False)
+
+            # Format choices: display "Label — Description", return just "Label"
+            choices = [
+                questionary.Choice(
+                    title=f"{opt['label']} — {opt['description']}",
+                    value=opt["label"],
+                )
+                for opt in options
+            ]
+
+            prompt = f"[{header}] {question_text}" if header else question_text
+
+            if multi_select:
+                selected = questionary.checkbox(
+                    prompt,
+                    choices=choices,
+                    style=style,
+                ).ask()
+                answers[question_text] = ", ".join(selected) if selected else ""
+            else:
+                selected = questionary.select(
+                    prompt,
+                    choices=choices,
+                    style=style,
+                ).ask()
+                answers[question_text] = selected or ""
+
+        return {
+            "questions": input_data.get("questions", []),
+            "answers": answers,
+        }
+
     def on_progress(self, message: str) -> None:
         """Display progress message to terminal.
 

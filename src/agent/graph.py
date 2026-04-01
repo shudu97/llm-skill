@@ -9,6 +9,7 @@ from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     HookMatcher,
+    PermissionResultAllow,
     ResultMessage,
     SystemMessage,
     TaskProgressMessage,
@@ -79,10 +80,19 @@ class ReActAgent:
                     }
                 }
 
+            async def can_use_tool(tool_name, input_data, context):
+                if tool_name == "AskUserQuestion":
+                    status.stop()
+                    result = await asyncio.to_thread(callback.handle_ask_user_question, input_data)
+                    status.start()
+                    return PermissionResultAllow(updated_input=result)
+                return PermissionResultAllow(updated_input=input_data)
+
             options = ClaudeAgentOptions(
-                allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
+                tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion"],
                 setting_sources=["project"],
                 resume=self.session_id,
+                can_use_tool=can_use_tool,
                 hooks={
                     "PreToolUse": [
                         HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
