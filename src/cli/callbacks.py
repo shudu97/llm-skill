@@ -73,12 +73,22 @@ class CLICallback(AgentCallback):
             ]
         )
 
+        OTHER = "__other__"
+
         answers = {}
         for q in input_data.get("questions", []):
             question_text = q["question"]
             header = q.get("header", "")
-            options = q["options"]
+            options = q.get("options", [])
             multi_select = q.get("multiSelect", False)
+
+            prompt = f"[{header}] {question_text}" if header else question_text
+
+            if not options:
+                # No predefined options — free-text input
+                answer = questionary.text(prompt, style=style).ask()
+                answers[question_text] = answer or ""
+                continue
 
             # Format choices: display "Label — Description", return just "Label"
             choices = [
@@ -88,22 +98,28 @@ class CLICallback(AgentCallback):
                 )
                 for opt in options
             ]
-
-            prompt = f"[{header}] {question_text}" if header else question_text
+            choices.append(questionary.Choice(title="Other (type your own)", value=OTHER))
 
             if multi_select:
                 selected = questionary.checkbox(
                     prompt,
                     choices=choices,
                     style=style,
-                ).ask()
-                answers[question_text] = ", ".join(selected) if selected else ""
+                ).ask() or []
+                if OTHER in selected:
+                    selected.remove(OTHER)
+                    custom = questionary.text("Your answer:", style=style).ask()
+                    if custom:
+                        selected.append(custom)
+                answers[question_text] = ", ".join(selected)
             else:
                 selected = questionary.select(
                     prompt,
                     choices=choices,
                     style=style,
                 ).ask()
+                if selected == OTHER:
+                    selected = questionary.text("Your answer:", style=style).ask() or ""
                 answers[question_text] = selected or ""
 
         return {
