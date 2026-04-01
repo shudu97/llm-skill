@@ -22,22 +22,6 @@ class AgentCallback(ABC):
         """
         pass
 
-    @abstractmethod
-    def handle_ask_user_question(self, input_data: dict) -> dict:
-        """Display Claude's questions to the user and collect their answers.
-
-        Args:
-            input_data: The AskUserQuestion tool input containing a 'questions' array.
-                Each question has 'question', 'header', 'options' (list of
-                {'label', 'description'}), and 'multiSelect' fields.
-
-        Returns:
-            Dict with 'questions' (original array) and 'answers' (mapping of
-            question text to selected option label(s), joined by ', ' for
-            multi-select).
-        """
-        pass
-
     def on_progress(self, message: str) -> None:
         """Optional callback for progress updates.
 

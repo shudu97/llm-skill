@@ -9,7 +9,6 @@ from claude_agent_sdk import (
     AssistantMessage,
     ClaudeAgentOptions,
     HookMatcher,
-    PermissionResultAllow,
     ResultMessage,
     SystemMessage,
     TaskProgressMessage,
@@ -80,19 +79,10 @@ class ReActAgent:
                     }
                 }
 
-            async def can_use_tool(tool_name, input_data, context):
-                if tool_name == "AskUserQuestion":
-                    status.stop()
-                    result = await asyncio.to_thread(callback.handle_ask_user_question, input_data)
-                    status.start()
-                    return PermissionResultAllow(updated_input=result)
-                return PermissionResultAllow(updated_input=input_data)
-
             options = ClaudeAgentOptions(
-                tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent", "AskUserQuestion"],
+                allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
                 setting_sources=["project"],
                 resume=self.session_id,
-                can_use_tool=can_use_tool,
                 hooks={
                     "PreToolUse": [
                         HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
@@ -100,13 +90,7 @@ class ReActAgent:
                 },
             )
 
-            async def prompt_stream():
-                yield {
-                    "type": "user",
-                    "message": {"role": "user", "content": user_input},
-                }
-
-            async for message in query(prompt=prompt_stream(), options=options):
+            async for message in query(prompt=user_input, options=options):
                 if isinstance(message, TaskProgressMessage):
                     status.update(message.description)
                 elif isinstance(message, SystemMessage):
