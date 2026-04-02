@@ -57,8 +57,7 @@ class ReActAgent:
         new_session_id: str | None = None
         final_result: str = ""
 
-        plugin_dir = os.getenv("PLUGIN_DIR", "")
-        plugins, add_dirs = register_plugins(plugin_dir) if plugin_dir else ([], [])
+        plugins, add_dirs = register_plugins(os.getenv("PLUGIN_DIR"))
 
         initial_word = random.choice(SPINNER_WORDS)
         with _console.status(f"{initial_word}...", spinner="dots") as status:
