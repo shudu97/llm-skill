@@ -21,7 +21,7 @@ def register_plugins(plugin_dir: str) -> tuple[list[SdkPluginConfig], list[str]]
     """
     base = Path(plugin_dir)
 
-    registry: dict = {}
+    registry: dict[str, dict[str, list[str]]] = {}
     yaml_path = base / "plugins.yaml"
     if yaml_path.exists():
         with open(yaml_path) as f:
