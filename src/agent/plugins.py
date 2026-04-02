@@ -9,7 +9,7 @@ import yaml
 from claude_agent_sdk import SdkPluginConfig
 
 
-def register_plugins(plugin_dir: str | None) -> tuple[list[SdkPluginConfig], list[str]]:
+def register_plugins(plugin_dir: str | None) -> tuple[list[SdkPluginConfig], list[str | Path]]:
     """Scan plugin_dir and return (plugins, add_dirs).
 
     Args:
@@ -31,7 +31,7 @@ def register_plugins(plugin_dir: str | None) -> tuple[list[SdkPluginConfig], lis
             registry = yaml.safe_load(f).get("plugins", {})
 
     plugins: list[SdkPluginConfig] = []
-    add_dirs: list[str] = []
+    add_dirs: list[str | Path] = []
 
     for name in os.listdir(plugin_dir):
         path = base / name
