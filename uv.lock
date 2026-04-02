@@ -972,6 +972,7 @@ dependencies = [
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "pandas" },
     { name = "prompt-toolkit" },
+    { name = "pyyaml" },
     { name = "questionary" },
     { name = "sqlalchemy" },
 ]
@@ -986,6 +987,7 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.39.1" },
     { name = "pandas", specifier = ">=2.3.3" },
     { name = "prompt-toolkit", specifier = ">=3.0.52" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "questionary", specifier = ">=2.1.1" },
     { name = "sqlalchemy", specifier = ">=2.0.46" },
 ]
