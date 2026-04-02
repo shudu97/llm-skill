@@ -3,6 +3,7 @@ ReAct Agent backed by the Claude Agent SDK.
 """
 
 import asyncio
+import os
 import random
 
 from claude_agent_sdk import (
@@ -19,6 +20,7 @@ from rich.console import Console
 
 from src.agent.callbacks import AgentCallback
 from src.agent.constants import SPINNER_WORDS
+from src.agent.plugins import register_plugins
 
 _console = Console()
 
@@ -55,6 +57,9 @@ class ReActAgent:
         new_session_id: str | None = None
         final_result: str = ""
 
+        plugin_dir = os.getenv("PLUGIN_DIR", "")
+        plugins, add_dirs = register_plugins(plugin_dir) if plugin_dir else ([], [])
+
         initial_word = random.choice(SPINNER_WORDS)
         with _console.status(f"{initial_word}...", spinner="dots") as status:
             async def bash_approval_hook(input_data, tool_use_id, context):
@@ -83,6 +88,8 @@ class ReActAgent:
                 allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"],
                 setting_sources=["project"],
                 resume=self.session_id,
+                plugins=plugins,
+                add_dirs=add_dirs,
                 hooks={
                     "PreToolUse": [
                         HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
