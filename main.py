@@ -15,7 +15,6 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from dotenv import load_dotenv
 from phoenix.otel import register
 from rich.console import Console
-from rich.panel import Panel
 
 from src.cli.runner import run_cli, select_session
 from src.store.conversation_store import ConversationStore
@@ -150,15 +149,11 @@ register(
     verbose=False,
 )
 
-_console.print(Panel(
-    "[bold #0051A5]RiskMind[/bold #0051A5]\n\n"
-    f"[dim]✓ LiteLLM proxy     :{_LITELLM_PORT}[/dim]\n"
-    f"[dim]✓ Logging proxy     :{_PROXY_PORT}[/dim]\n"
-    f"[dim]✓ Phoenix tracing   {phoenix_endpoint}[/dim]\n\n"
-    "[dim]Type [/dim][bold]exit[/bold][dim], [/dim][bold]quit[/bold][dim] or [/dim][bold]q[/bold][dim] to quit[/dim]",
-    border_style="#0051A5",
-    expand=False,
-))
+_console.print("[bold #0051A5]RiskMind[/bold #0051A5]\n")
+_console.print(f"[dim]✓ LiteLLM proxy     :{_LITELLM_PORT}[/dim]")
+_console.print(f"[dim]✓ Logging proxy     :{_PROXY_PORT}[/dim]")
+_console.print(f"[dim]✓ Phoenix tracing   {phoenix_endpoint}[/dim]\n")
+_console.print("[dim]Type [/dim][bold]exit[/bold][dim], [/dim][bold]quit[/bold][dim] or [/dim][bold]q[/bold][dim] to quit[/dim]\n")
 
 
 if __name__ == "__main__":
