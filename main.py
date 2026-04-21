@@ -14,11 +14,14 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from dotenv import load_dotenv
 from phoenix.otel import register
+from rich.console import Console
+from rich.panel import Panel
 
 from src.cli.runner import run_cli, select_session
 from src.store.conversation_store import ConversationStore
 from src.store.database import create_db_engine
-from src.utils.logger import logger
+
+_console = Console()
 
 # Load environment variables
 load_dotenv()
@@ -49,7 +52,6 @@ def _start_litellm_proxy() -> None:
         raise RuntimeError(
             f"LiteLLM proxy exited immediately with code {proc.returncode}"
         )
-    logger.info(f"LiteLLM proxy running on port {_LITELLM_PORT}")
 
 
 def _start_logging_proxy() -> None:
@@ -131,7 +133,6 @@ def _start_logging_proxy() -> None:
 
     server = HTTPServer(("127.0.0.1", int(_PROXY_PORT)), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
-    logger.info(f"Logging proxy on port {_PROXY_PORT} → LiteLLM:{_LITELLM_PORT}")
 
 
 # Start the proxy and point the Claude CLI at it
@@ -148,8 +149,15 @@ register(
     endpoint=f"{phoenix_endpoint}/v1/traces",
 )
 
-logger.info(f"Phoenix configured at: {phoenix_endpoint}")
-logger.info("Traces will be sent to Phoenix - check http://0.0.0.0:6006/projects")
+_console.print(Panel(
+    "[bold cyan]RiskMind[/bold cyan]  [dim]LLM Skill Agent[/dim]\n\n"
+    f"[dim]✓ LiteLLM proxy     :{_LITELLM_PORT}[/dim]\n"
+    f"[dim]✓ Logging proxy     :{_PROXY_PORT}[/dim]\n"
+    f"[dim]✓ Phoenix tracing   {phoenix_endpoint}[/dim]\n\n"
+    "[dim]type [/dim][bold]exit[/bold][dim] to quit[/dim]",
+    border_style="cyan",
+    expand=False,
+))
 
 
 if __name__ == "__main__":

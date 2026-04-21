@@ -9,6 +9,7 @@ import re
 import uuid
 
 import questionary
+from rich.console import Console
 
 from claude_agent_sdk import get_session_messages
 
@@ -16,7 +17,8 @@ from src.agent.graph import ReActAgent
 from src.cli.callbacks import CLICallback
 from src.store.conversation_store import ConversationStore
 from src.store.database import create_db_engine
-from src.utils.logger import logger
+
+_console = Console()
 
 _NEW_CONVERSATION = "__new__"
 _ABS_PATH_RE = re.compile(r'"(/[^"]+)"|\'(/[^\']+)\'|`(/[^`]+)`|(/(?:[^\s/]+/)*[^\s/]+)')
@@ -121,8 +123,6 @@ def run_cli(session_id: str, is_new: bool) -> None:
         session_id=session_id if not is_new else None,
     )
 
-    logger.info(f"Session: {session_id}")
-    logger.info("Type 'exit' or 'quit' to end the conversation.\n")
 
     if not is_new:
         _print_conversation_history(session_id)
@@ -134,11 +134,9 @@ def run_cli(session_id: str, is_new: bool) -> None:
         try:
             query_text = input("\n>>> ").strip()
         except (EOFError, KeyboardInterrupt):
-            logger.info("Ending conversation. Goodbye!")
             break
 
         if query_text.lower() in ["exit", "quit", "q"]:
-            logger.info("Ending conversation. Goodbye!")
             break
 
         if not query_text:
@@ -163,5 +161,5 @@ def run_cli(session_id: str, is_new: bool) -> None:
             store.touch(session_id)
 
         except Exception as e:
-            logger.error(f"Error processing query: {e}")
-            logger.info("Please try again or type 'exit' to quit.")
+            _console.print(f"[bold red]Error:[/bold red] {e}")
+            _console.print("[dim]Please try again or type [/dim][bold]exit[/bold][dim] to quit.[/dim]")
