@@ -149,7 +149,7 @@ register(
     verbose=False,
 )
 
-_console.print("[bold #0051A5]RiskMind[/bold #0051A5]\n")
+_console.print("\n[bold #0051A5]RiskMind[/bold #0051A5]\n")
 _console.print(f"[dim]✓ LiteLLM proxy     :{_LITELLM_PORT}[/dim]")
 _console.print(f"[dim]✓ Logging proxy     :{_PROXY_PORT}[/dim]")
 _console.print(f"[dim]✓ Phoenix tracing   {phoenix_endpoint}[/dim]\n")

@@ -44,11 +44,9 @@ def _paged_select(message: str, choices: list) -> str | None:
         start = max(0, min(cursor[0] - _PAGE_SIZE // 2, n - _PAGE_SIZE))
         end = min(start + _PAGE_SIZE, n)
         lines = [f"{message}\n"]
-        lines.append("  ↑\n" if start > 0 else "\n")
         for i in range(start, end):
             prefix = " » " if i == cursor[0] else "   "
             lines.append(f"{prefix}{selectables[i].title}\n")
-        lines.append("  ↓\n" if end < n else "\n")
         return "".join(lines)
 
     result = [None]
@@ -72,10 +70,17 @@ def _paged_select(message: str, choices: list) -> str | None:
     def _(event):
         event.app.exit(exception=KeyboardInterrupt)
 
-    Application(
-        layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 3)),
-        key_bindings=kb,
-    ).run()
+    import sys
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+    try:
+        Application(
+            layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 1)),
+            key_bindings=kb,
+        ).run()
+    finally:
+        sys.stdout.write("\033[?25h")
+        sys.stdout.flush()
     return result[0]
 
 
