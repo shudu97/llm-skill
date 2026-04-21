@@ -19,15 +19,26 @@ from src.store.database import create_db_engine
 from src.utils.logger import logger
 
 _NEW_CONVERSATION = "__new__"
-_ABS_PATH_RE = re.compile(r"(/(?:[^\s/]+/)*[^\s/]+)")
+_ABS_PATH_RE = re.compile(
+    r'"(/[^"]+)"|\'(/[^\']+)\'|`(/[^`]+)`|(/(?:[^\s/]+/)*[^\s/]+)'
+)
 
 
 def _linkify_paths(text: str) -> str:
     """Wrap absolute paths in OSC 8 terminal hyperlinks so they're clickable."""
     def _replace(m: re.Match) -> str:
-        path = m.group(1)
-        url = f"file://{path}"
-        return f"\033]8;;{url}\033\\{path}\033]8;;\033\\"
+        quoted_double, quoted_single, backtick, bare = m.groups()
+        if quoted_double is not None:
+            url = f"file://{quoted_double}"
+            return f'"\033]8;;{url}\033\\{quoted_double}\033]8;;\033\\"'
+        if quoted_single is not None:
+            url = f"file://{quoted_single}"
+            return f"'\033]8;;{url}\033\\{quoted_single}\033]8;;\033\\'"
+        if backtick is not None:
+            url = f"file://{backtick}"
+            return f"`\033]8;;{url}\033\\{backtick}\033]8;;\033\\`"
+        url = f"file://{bare}"
+        return f"\033]8;;{url}\033\\{bare}\033]8;;\033\\"
 
     return _ABS_PATH_RE.sub(_replace, text)
 
