@@ -58,7 +58,7 @@ class ReActAgent:
         plugins, add_dirs = register_plugins(os.getenv("PLUGIN_DIR"))
 
         initial_word = random.choice(SPINNER_WORDS)
-        with _console.status(f"{initial_word}...", spinner="dots") as status:
+        with _console.status(f"[#00BFFF]{initial_word}...[/#00BFFF]", spinner="dots", spinner_style="#00BFFF") as status:
             async def tool_display_hook(input_data, tool_use_id, context):
                 tool_name = input_data.get("tool_name", "")
                 tool_input = input_data.get("tool_input", {})
