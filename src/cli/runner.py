@@ -70,18 +70,11 @@ def _paged_select(message: str, choices: list) -> str | None:
     def _(event):
         event.app.exit(exception=KeyboardInterrupt)
 
-    import sys
-    sys.stdout.write("\033[?25l")
-    sys.stdout.flush()
-    try:
-        Application(
-            layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 1)),
-            key_bindings=kb,
-            erase_when_done=True,
-        ).run()
-    finally:
-        sys.stdout.write("\033[?25h")
-        sys.stdout.flush()
+    Application(
+        layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 1, always_hide_cursor=True)),
+        key_bindings=kb,
+        erase_when_done=True,
+    ).run()
     return result[0]
 
 
