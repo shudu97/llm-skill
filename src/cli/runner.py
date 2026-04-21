@@ -22,6 +22,61 @@ _console = Console()
 
 _NEW_CONVERSATION = "__new__"
 _ABS_PATH_RE = re.compile(r'"(/[^"]+)"|\'(/[^\']+)\'|`(/[^`]+)`|(/(?:[^\s/]+/)*[^\s/]+)')
+_PAGE_SIZE = 5
+
+
+def _paged_select(message: str, choices: list) -> str | None:
+    """Arrow-key selector showing _PAGE_SIZE items at a time."""
+    from prompt_toolkit import Application
+    from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.layout import Layout
+    from prompt_toolkit.layout.containers import Window
+    from prompt_toolkit.layout.controls import FormattedTextControl
+
+    selectables = [c for c in choices if not isinstance(c, questionary.Separator)]
+    if not selectables:
+        return None
+
+    cursor = [0]
+
+    def render():
+        n = len(selectables)
+        start = max(0, min(cursor[0] - _PAGE_SIZE // 2, n - _PAGE_SIZE))
+        end = min(start + _PAGE_SIZE, n)
+        lines = [f"{message}\n"]
+        lines.append("  ↑\n" if start > 0 else "\n")
+        for i in range(start, end):
+            prefix = " » " if i == cursor[0] else "   "
+            lines.append(f"{prefix}{selectables[i].title}\n")
+        lines.append("  ↓\n" if end < n else "\n")
+        return "".join(lines)
+
+    result = [None]
+    kb = KeyBindings()
+
+    @kb.add("up")
+    def _(event):
+        cursor[0] = max(0, cursor[0] - 1)
+
+    @kb.add("down")
+    def _(event):
+        cursor[0] = min(len(selectables) - 1, cursor[0] + 1)
+
+    @kb.add("enter")
+    def _(event):
+        result[0] = selectables[cursor[0]].value
+        event.app.exit()
+
+    @kb.add("c-c")
+    @kb.add("c-q")
+    def _(event):
+        event.app.exit(exception=KeyboardInterrupt)
+
+    Application(
+        layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 3)),
+        key_bindings=kb,
+    ).run()
+    return result[0]
 
 
 def _linkify_paths(text: str) -> str:
@@ -58,10 +113,7 @@ def select_session(store: ConversationStore) -> tuple[str, bool]:
         ],
     ]
 
-    session_id = questionary.select(
-        "Select a conversation:",
-        choices=choices,
-    ).ask()
+    session_id = _paged_select("Select a conversation:", choices)
 
     if session_id is None:
         raise KeyboardInterrupt
