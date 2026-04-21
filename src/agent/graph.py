@@ -7,13 +7,11 @@ import os
 import random
 
 from claude_agent_sdk import (
-    AssistantMessage,
     ClaudeAgentOptions,
     HookMatcher,
     ResultMessage,
     SystemMessage,
     TaskProgressMessage,
-    ToolUseBlock,
     query,
 )
 from rich.console import Console
@@ -61,6 +59,15 @@ class ReActAgent:
 
         initial_word = random.choice(SPINNER_WORDS)
         with _console.status(f"{initial_word}...", spinner="dots") as status:
+            async def tool_display_hook(input_data, tool_use_id, context):
+                tool_name = input_data.get("tool_name", "")
+                tool_input = input_data.get("tool_input", {})
+                if tool_name.lower() != "bash":
+                    status.stop()
+                    callback.on_tool_call(tool_name, tool_input)
+                    status.start()
+                return {}
+
             async def bash_approval_hook(input_data, tool_use_id, context):
                 command = input_data.get("tool_input", {}).get("command", "")
                 status.stop()
@@ -91,7 +98,8 @@ class ReActAgent:
                 add_dirs=add_dirs,
                 hooks={
                     "PreToolUse": [
-                        HookMatcher(matcher="Bash", hooks=[bash_approval_hook])
+                        HookMatcher(matcher=None, hooks=[tool_display_hook]),
+                        HookMatcher(matcher="Bash", hooks=[bash_approval_hook]),
                     ]
                 },
             )
@@ -102,12 +110,6 @@ class ReActAgent:
                 elif isinstance(message, SystemMessage):
                     if hasattr(message, "data") and message.data:
                         new_session_id = message.data.get("session_id")
-                elif isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, ToolUseBlock) and block.name.lower() != "bash":
-                            status.stop()
-                            callback.on_tool_call(block.name, block.input)
-                            status.start()
                 elif isinstance(message, ResultMessage):
                     final_result = message.result or ""
                     if new_session_id is None:
