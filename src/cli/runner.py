@@ -77,6 +77,7 @@ def _paged_select(message: str, choices: list) -> str | None:
         Application(
             layout=Layout(Window(FormattedTextControl(render), height=_PAGE_SIZE + 1)),
             key_bindings=kb,
+            erase_when_done=True,
         ).run()
     finally:
         sys.stdout.write("\033[?25h")
