@@ -5,6 +5,7 @@ Handles the command-line interface and user interaction loop.
 
 import asyncio
 import os
+import re
 import uuid
 
 import questionary
@@ -18,6 +19,17 @@ from src.store.database import create_db_engine
 from src.utils.logger import logger
 
 _NEW_CONVERSATION = "__new__"
+_ABS_PATH_RE = re.compile(r"(/(?:[^\s/]+/)*[^\s/]+)")
+
+
+def _linkify_paths(text: str) -> str:
+    """Wrap absolute paths in OSC 8 terminal hyperlinks so they're clickable."""
+    def _replace(m: re.Match) -> str:
+        path = m.group(1)
+        url = f"file://{path}"
+        return f"\033]8;;{url}\033\\{path}\033]8;;\033\\"
+
+    return _ABS_PATH_RE.sub(_replace, text)
 
 
 def select_session(store: ConversationStore) -> tuple[str, bool]:
@@ -83,7 +95,7 @@ def _print_conversation_history(session_id: str) -> None:
         if role == "user":
             print(f"\n>>> {text}")
         else:
-            print(f"\n{text}\n")
+            print(f"\n{_linkify_paths(text)}\n")
 
     print("\033[90m─── End of History ───\033[0m")
 
@@ -129,7 +141,7 @@ def run_cli(session_id: str, is_new: bool) -> None:
 
         try:
             response, new_session_id = asyncio.run(agent.run(query_text))
-            print(f"\n{response}\n")
+            print(f"\n{_linkify_paths(response)}\n")
 
             if new_session_id and new_session_id != session_id:
                 session_id = new_session_id
