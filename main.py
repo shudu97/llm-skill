@@ -147,15 +147,16 @@ phoenix_endpoint = os.getenv("PHOENIX_COLLECTOR_ENDPOINT", "http://0.0.0.0:6006"
 register(
     project_name="default",
     endpoint=f"{phoenix_endpoint}/v1/traces",
+    verbose=False,
 )
 
 _console.print(Panel(
-    "[bold cyan]RiskMind[/bold cyan]  [dim]LLM Skill Agent[/dim]\n\n"
+    "[bold #0051A5]RiskMind[/bold #0051A5]\n\n"
     f"[dim]✓ LiteLLM proxy     :{_LITELLM_PORT}[/dim]\n"
     f"[dim]✓ Logging proxy     :{_PROXY_PORT}[/dim]\n"
     f"[dim]✓ Phoenix tracing   {phoenix_endpoint}[/dim]\n\n"
-    "[dim]type [/dim][bold]exit[/bold][dim] to quit[/dim]",
-    border_style="cyan",
+    "[dim]Type [/dim][bold]exit[/bold][dim], [/dim][bold]quit[/bold][dim] or [/dim][bold]q[/bold][dim] to quit[/dim]",
+    border_style="#0051A5",
     expand=False,
 ))
 
