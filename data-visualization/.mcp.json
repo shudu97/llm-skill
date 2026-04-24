@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "echarts": {
+      "type": "sse",
+      "url": "http://localhost:3033/sse"
+    }
+  }
+}
