@@ -3,6 +3,9 @@
 Stop hook for the data-visualization subagent.
 Validates the ECharts option JSON in <echarts-option> tags before the agent stops.
 Exits non-zero with an error message to trigger a retry if validation fails.
+
+Can also be imported as a module to use validate_echarts_hook() as a Claude Agent
+SDK SubagentStop callback — pass it via ClaudeAgentOptions hooks.
 """
 import json
 import os
@@ -74,6 +77,64 @@ def main():
 
     log("PASS")
     sys.exit(0)
+
+
+# ── Claude Agent SDK hook (imported as a Python callback) ─────────────────────
+
+def _extract_text(messages: list) -> str:
+    for msg in reversed(messages):
+        if msg.get("role") == "assistant":
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                return " ".join(
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict) and block.get("type") == "text"
+                )
+            return str(content)
+    return ""
+
+
+async def validate_echarts_hook(hook_input, tool_use_id, context):
+    """Claude Agent SDK SubagentStop callback.
+
+    Use with ClaudeAgentOptions:
+        from claude_agent_sdk import ClaudeAgentOptions, HookMatcher
+        from .claude.hooks.validate_echarts import validate_echarts_hook
+
+        options = ClaudeAgentOptions(
+            hooks={
+                "SubagentStop": [
+                    HookMatcher(
+                        matcher="data-visualization",
+                        hooks=[validate_echarts_hook],
+                    )
+                ]
+            }
+        )
+    """
+    if hook_input.get("stop_hook_active"):
+        return {}
+
+    with open(hook_input["agent_transcript_path"]) as f:
+        messages = [json.loads(line) for line in f]
+
+    text = _extract_text(messages)
+
+    match = re.search(r"<echarts-option>\s*(.*?)\s*</echarts-option>", text, re.DOTALL)
+    if not match:
+        return {}
+
+    valid, error = validate(match.group(1))
+    if not valid:
+        log(f"FAIL (SDK) {error}")
+        return {
+            "continue_": False,
+            "reason": f"ECharts validation failed: {error}. Fix the option and output it again in <echarts-option> tags.",
+        }
+
+    log("PASS (SDK)")
+    return {}
 
 
 if __name__ == "__main__":
